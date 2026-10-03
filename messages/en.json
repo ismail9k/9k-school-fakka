@@ -7,5 +7,32 @@
     "title": "Fakka",
     "tagline": "Track every penny. Coming soon to iOS and Android.",
     "switchLocale": "العربية"
+  },
+  "Waitlist": {
+    "kicker": "Get early access",
+    "title": "Save your spot.",
+    "body": "Join the list and we’ll invite you first.",
+    "nameLabel": "Your name",
+    "namePlaceholder": "Mona",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@email.com",
+    "submit": "Join",
+    "submitting": "Joining…",
+    "privacy": "We only email you about Fakka’s launch. We never share your details.",
+    "unavailable": "Sign-ups open very soon.",
+    "error": "Something went wrong. Please try again.",
+    "honeypot": "Leave this field empty",
+    "errors": {
+      "nameMissing": "Please enter your name.",
+      "emailMissing": "Please enter your email.",
+      "emailInvalid": "Please enter a valid email."
+    },
+    "success": {
+      "position": "You’re <num>#{position}</num>",
+      "body": "Each friend who joins with your link moves you up the queue.",
+      "linkLabel": "Your invite link",
+      "copy": "Copy",
+      "copied": "Copied"
+    }
   }
 }
