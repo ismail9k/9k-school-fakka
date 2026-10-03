@@ -5,7 +5,7 @@ const script = `(function () {
   var locales = ${JSON.stringify(routing.locales)};
   var lang = (navigator.language || "").slice(0, 2).toLowerCase();
   var locale = locales.indexOf(lang) !== -1 ? lang : ${JSON.stringify(routing.defaultLocale)};
-  location.replace("/" + locale + "/");
+  location.replace("/" + locale + "/" + location.search + location.hash);
 })();`;
 
 export default function RootPage() {
