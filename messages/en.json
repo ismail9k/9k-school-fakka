@@ -3,11 +3,6 @@
     "title": "Fakka — Track every penny",
     "description": "Fakka helps you manage your personal expenses, simply."
   },
-  "Home": {
-    "title": "Fakka",
-    "tagline": "Track every penny. Coming soon to iOS and Android.",
-    "switchLocale": "العربية"
-  },
   "Waitlist": {
     "kicker": "Get early access",
     "title": "Save your spot.",
@@ -34,5 +29,21 @@
       "copy": "Copy",
       "copied": "Copied"
     }
+  },
+  "Header": {
+    "home": "Fakka home"
+  },
+  "LocaleSwitch": {
+    "label": "العربية"
+  },
+  "Hero": {
+    "title": "Where did your salary <highlight>go</highlight> this month?",
+    "body": "Fakka helps you note every expense in seconds and see exactly where your money went. Made for Egypt, in EGP.",
+    "cta": "Join the waitlist",
+    "reassure": "Free to join. We’ll email you when it’s ready."
+  },
+  "Footer": {
+    "privacy": "We keep only what the waitlist needs. Never shared or sold.",
+    "rights": "© {year} Fakka"
   }
 }
