@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { IBM_Plex_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { notFound } from "next/navigation";
@@ -66,10 +67,12 @@ export default async function LocaleLayout({
       data-scroll-behavior="smooth"
       className={`${plex.variable} ${thmanyahSans.variable} ${thmanyahSerif.variable} h-full antialiased motion-safe:scroll-smooth`}
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: localeSwitchScript }} />
-      </head>
       <body className="flex min-h-full flex-col">
+        <Script
+          id="locale-switch-ref"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: localeSwitchScript }}
+        />
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
