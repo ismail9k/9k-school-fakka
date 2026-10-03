@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing, rtlLocales } from "@/i18n/routing";
+import { localeSwitchScript } from "@/lib/locale-switch";
 
 const plex = IBM_Plex_Sans({
   variable: "--font-plex",
@@ -62,8 +63,12 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={rtlLocales.includes(locale) ? "rtl" : "ltr"}
+      data-scroll-behavior="smooth"
       className={`${plex.variable} ${thmanyahSans.variable} ${thmanyahSerif.variable} h-full antialiased motion-safe:scroll-smooth`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: localeSwitchScript }} />
+      </head>
       <body className="flex min-h-full flex-col">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>

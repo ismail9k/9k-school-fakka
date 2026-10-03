@@ -95,6 +95,10 @@ describe("parseWaitlistResponse", () => {
     ["fractional position", { position: 1.5, inviteUrl: "https://fakka.app/?ref=a" }],
     ["missing inviteUrl", { position: 3 }],
     ["empty inviteUrl", { position: 3, inviteUrl: "" }],
+    ["blank inviteUrl", { position: 3, inviteUrl: "   " }],
+    ["relative inviteUrl", { position: 3, inviteUrl: "/en/?ref=a" }],
+    ["invalid inviteUrl", { position: 3, inviteUrl: "not-a-url" }],
+    ["unsafe inviteUrl", { position: 3, inviteUrl: "javascript:alert(1)" }],
   ])("rejects %s", (_label, body) => {
     expect(() => parseWaitlistResponse(body)).toThrow();
   });

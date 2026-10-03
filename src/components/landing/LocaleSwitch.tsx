@@ -9,6 +9,7 @@ export function LocaleSwitch() {
   return (
     <a
       href={`/${other}/`}
+      data-locale-switch=""
       hrefLang={other}
       lang={other}
       className="rounded-full border border-ink px-4 py-1.5 text-sm transition-colors hover:bg-ink hover:text-paper"

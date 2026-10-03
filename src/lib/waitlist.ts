@@ -41,9 +41,16 @@ export function parseWaitlistResponse(body: unknown): WaitlistResult {
       Number.isInteger(position) &&
       position > 0 &&
       typeof inviteUrl === "string" &&
-      inviteUrl !== ""
+      inviteUrl.trim() === inviteUrl
     ) {
-      return { position, inviteUrl };
+      try {
+        const url = new URL(inviteUrl);
+        if (url.protocol === "https:" || url.protocol === "http:") {
+          return { position, inviteUrl };
+        }
+      } catch {
+        // An invite link must be an absolute URL that can be shared.
+      }
     }
   }
   throw new Error("Malformed waitlist response");
