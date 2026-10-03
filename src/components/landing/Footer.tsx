@@ -1,12 +1,14 @@
-import { useFormatter, useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import type { Locale } from "@/i18n/routing";
+import { formatNumber } from "@/lib/format";
 import { LocaleSwitch } from "./LocaleSwitch";
 import { Wordmark } from "./Wordmark";
 
 export function Footer() {
   const t = useTranslations("Footer");
-  const format = useFormatter();
+  const locale = useLocale() as Locale;
   // No grouping, so English shows "2026" (not "2,026") and Arabic gets Arabic digits.
-  const year = format.number(new Date().getFullYear(), { useGrouping: false });
+  const year = formatNumber(new Date().getFullYear(), locale, { useGrouping: false });
 
   return (
     <footer className="border-t border-line">

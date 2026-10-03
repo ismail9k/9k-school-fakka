@@ -10,6 +10,7 @@ import {
   type WaitlistMode,
   type WaitlistResult,
 } from "@/lib/waitlist";
+import { formatNumber } from "@/lib/format";
 
 type Status =
   | { kind: "idle" }
@@ -145,7 +146,7 @@ function Success({ result, locale }: { result: WaitlistResult; locale: Locale })
   const headingRef = useRef<HTMLParagraphElement>(null);
   const linkRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
-  const position = new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en").format(result.position);
+  const position = formatNumber(result.position, locale);
 
   // The form that had focus is gone; move focus to the result.
   useEffect(() => {
