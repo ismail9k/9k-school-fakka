@@ -7,5 +7,32 @@
     "title": "فكّة",
     "tagline": "تابع كل قرش. قريبًا على iOS وAndroid.",
     "switchLocale": "English"
+  },
+  "Waitlist": {
+    "kicker": "ادخل بدري",
+    "title": "احجز مكانك.",
+    "body": "سجّل، وهنبعتلك الدعوة قبل أي حد.",
+    "nameLabel": "اسمك",
+    "namePlaceholder": "منى",
+    "emailLabel": "إيميلك",
+    "emailPlaceholder": "you@email.com",
+    "submit": "سجّلني",
+    "submitting": "ثانية واحدة…",
+    "privacy": "مش هنبعتلك غير عن إطلاق فكّة، ومش هنشارك بياناتك مع حد.",
+    "unavailable": "التسجيل هيفتح قريب جدًا.",
+    "error": "حصلت مشكلة. جرّب تاني.",
+    "honeypot": "سيب الخانة دي فاضية",
+    "errors": {
+      "nameMissing": "اكتب اسمك.",
+      "emailMissing": "اكتب إيميلك.",
+      "emailInvalid": "الإيميل ده مش مظبوط."
+    },
+    "success": {
+      "position": "إنت رقم <num>{position}</num> في الدور",
+      "body": "كل صاحب يسجّل من اللينك بتاعك بيقدّمك في الدور.",
+      "linkLabel": "لينك الدعوة بتاعك",
+      "copy": "انسخ",
+      "copied": "اتنسخ"
+    }
   }
 }
