@@ -25,7 +25,8 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
 - Preview on the Workers runtime: `pnpm preview` (build + `wrangler dev`)
 - Deploy: `pnpm deploy` (build + `wrangler deploy`)
 - Lint: `pnpm lint`
-- Test: no test runner is set up yet.
+- Test: `pnpm test` (Vitest + Testing Library, jsdom). Watch mode: `pnpm test:watch`.
+  Tests sit next to the code they cover (`*.test.ts(x)`).
 
 ### Architecture
 
