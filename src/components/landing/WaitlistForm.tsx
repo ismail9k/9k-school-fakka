@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type FormEventHandler } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+  type FormEventHandler,
+} from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Locale } from "@/i18n/routing";
 import {
@@ -27,6 +34,13 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   // State updates are async, so guard against a second submit in the same tick.
   const inFlight = useRef(false);
+  // Server HTML renders disabled; a submit before hydration would do a native
+  // GET and put the name and email in the URL.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+
+  useEffect(() => {
+    rememberRef(readRef(window.location.search));
+  }, []);
 
   if (status.kind === "success") {
     return <Success result={status.result} locale={locale} />;
@@ -68,7 +82,7 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
           name: String(data.get("name")).trim(),
           email: String(data.get("email")).trim(),
           locale,
-          ref: readRef(window.location.search),
+          ref: readRef(window.location.search) ?? recallRef(),
         },
         mode,
       );
@@ -83,7 +97,7 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl">
       <fieldset
-        disabled={submitting || unavailable}
+        disabled={!hydrated || submitting || unavailable}
         className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end"
       >
         <label className="grid gap-1.5 text-sm text-paper/90">
@@ -139,6 +153,27 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
       <p className="mt-4 text-xs text-paper/70">{t("privacy")}</p>
     </form>
   );
+}
+
+// Keep the invite code for this tab, so switching language (a plain link
+// without the query) still credits the friend who invited.
+const REF_KEY = "fakka.ref";
+
+const subscribeNever = () => () => {};
+
+function rememberRef(ref: string | null) {
+  if (!ref) return;
+  try {
+    window.sessionStorage.setItem(REF_KEY, ref);
+  } catch {}
+}
+
+function recallRef(): string | null {
+  try {
+    return window.sessionStorage.getItem(REF_KEY);
+  } catch {
+    return null;
+  }
 }
 
 function Success({ result, locale }: { result: WaitlistResult; locale: Locale }) {

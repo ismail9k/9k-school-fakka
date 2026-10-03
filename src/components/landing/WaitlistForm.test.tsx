@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ar from "../../../messages/ar.json";
 import en from "../../../messages/en.json";
@@ -35,6 +36,7 @@ async function fillAndSubmit(user: UserEvent, name = "Mona", email = "mona@examp
 
 beforeEach(() => {
   window.history.replaceState({}, "", "/en/");
+  window.sessionStorage.clear();
 });
 
 afterEach(() => {
@@ -218,5 +220,33 @@ describe("WaitlistForm", () => {
     expect(link.selectionStart).toBe(0);
     expect(link.selectionEnd).toBe(INVITE.length);
     expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
+  });
+
+  it("keeps the invite code after switching language", async () => {
+    window.history.replaceState({}, "", "/en/?ref=friend42");
+    const first = renderForm();
+    first.unmount();
+    window.history.replaceState({}, "", "/ar/");
+    const fetch = stubFetch(joined);
+    const user = userEvent.setup();
+    renderForm({ locale: "ar" });
+
+    await user.type(screen.getByLabelText("اسمك"), "منى");
+    await user.type(screen.getByLabelText("إيميلك"), "mona@example.com");
+    await user.click(screen.getByRole("button", { name: "سجّلني" }));
+    await screen.findByRole("status");
+
+    const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string).ref).toBe("friend42");
+  });
+
+  it("renders disabled until hydrated, so an early submit cannot put the email in the URL", () => {
+    const html = renderToString(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <WaitlistForm mode={remote} />
+      </NextIntlClientProvider>,
+    );
+
+    expect(html).toMatch(/<fieldset[^>]*disabled/);
   });
 });
