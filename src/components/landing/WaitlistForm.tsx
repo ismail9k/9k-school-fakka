@@ -67,9 +67,10 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
   const handleInvalid: FormEventHandler<HTMLInputElement> = (event) => {
     const input = event.currentTarget;
     const { valueMissing, patternMismatch, typeMismatch } = input.validity;
-    if (valueMissing || patternMismatch) {
-      input.setCustomValidity(t(input.name === "name" ? "errors.nameMissing" : "errors.emailMissing"));
-    } else if (typeMismatch) {
+    const isName = input.name === "name";
+    if (valueMissing || (isName && patternMismatch)) {
+      input.setCustomValidity(t(isName ? "errors.nameMissing" : "errors.emailMissing"));
+    } else if (typeMismatch || patternMismatch) {
       input.setCustomValidity(t("errors.emailInvalid"));
     }
   };
@@ -151,6 +152,9 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
             name="email"
             type="email"
             required
+            // Match the server: it also wants a dot in the domain and at most 254 characters.
+            pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+            maxLength={254}
             dir="ltr"
             autoComplete="email"
             placeholder={t("emailPlaceholder")}

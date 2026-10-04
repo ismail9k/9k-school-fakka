@@ -190,6 +190,24 @@ describe("WaitlistForm", () => {
     );
   });
 
+  it("rejects an email without a dot in the domain, which the server would refuse", async () => {
+    const fetch = stubFetch(joined);
+    const user = userEvent.setup();
+    renderForm();
+
+    await fillAndSubmit(user, "Mona", "mona@gmail");
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect((screen.getByLabelText("Email") as HTMLInputElement).validationMessage).toBe(
+      "Please enter a valid email.",
+    );
+  });
+
+  it("limits the email to 254 characters, like the server", () => {
+    renderForm();
+    expect(screen.getByLabelText("Email")).toHaveAttribute("maxLength", "254");
+  });
+
   it("uses Arabic validation messages on the Arabic page", async () => {
     const fetch = stubFetch(joined);
     const user = userEvent.setup();
