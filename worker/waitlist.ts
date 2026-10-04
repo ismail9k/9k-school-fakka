@@ -1,0 +1,71 @@
+import { readConfig } from "./config";
+import { sendConfirmationEmail } from "./email";
+import { emailKey } from "./email-key";
+import type { Env, ExecutionContext } from "./env";
+import { json } from "./http";
+import { createSignup, getPosition } from "./store";
+import { verifyTurnstile } from "./turnstile";
+import { parseSignupRequest } from "./validate";
+
+const MAX_BODY_BYTES = 4096;
+
+const invalid = () => json({ error: "invalid_request" }, 400);
+const serverError = () => json({ error: "server_error" }, 500);
+
+// Check order matters: nothing is written before Turnstile passes.
+export async function handleWaitlist(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, { Allow: "POST" });
+
+  const ip = request.headers.get("CF-Connecting-IP");
+  const { success } = await env.WAITLIST_LIMITER.limit({ key: ip ?? "unknown" });
+  if (!success) return json({ error: "rate_limited" }, 429);
+
+  if (Number(request.headers.get("Content-Length") ?? 0) > MAX_BODY_BYTES) return invalid();
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).length > MAX_BODY_BYTES) return invalid();
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return invalid();
+  }
+  const input = parseSignupRequest(parsed);
+  if (!input) return invalid();
+
+  if (!env.TURNSTILE_SECRET_KEY) {
+    console.error("TURNSTILE_SECRET_KEY is not set");
+    return serverError();
+  }
+  if (!(await verifyTurnstile(input.turnstileToken, env.TURNSTILE_SECRET_KEY, ip))) {
+    return json({ error: "verification_failed" }, 403);
+  }
+
+  const config = readConfig(env);
+  try {
+    const { signup, created } = await createSignup(env.DB, {
+      name: input.name,
+      email: input.email,
+      emailKey: emailKey(input.email),
+      locale: input.locale,
+      ref: input.ref,
+      createdAt: new Date().toISOString(),
+    });
+    const position = await getPosition(env.DB, signup.id, config.referralJump);
+    const inviteUrl = `${config.siteUrl}/${signup.locale}/?ref=${signup.inviteCode}`;
+
+    if (created) {
+      ctx.waitUntil(
+        sendConfirmationEmail(
+          { to: input.email, name: input.name, locale: signup.locale, position, inviteUrl },
+          { apiKey: env.RESEND_API_KEY, from: config.emailFrom, idempotencyKey: `signup-${signup.id}` },
+        ),
+      );
+    }
+
+    return json({ position, inviteUrl }, 200);
+  } catch (error) {
+    console.error("Waitlist signup failed", error);
+    return serverError();
+  }
+}
