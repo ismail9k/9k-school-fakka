@@ -16,7 +16,29 @@ function shape(value: unknown): unknown {
   return typeof value;
 }
 
+// Key paths of every string leaf that is empty or whitespace-only.
+function emptyStrings(value: unknown, path = ""): string[] {
+  if (typeof value === "string") return value.trim() === "" ? [path] : [];
+  if (Array.isArray(value)) {
+    return value.flatMap((item, i) => emptyStrings(item, `${path}[${i}]`));
+  }
+  if (value && typeof value === "object") {
+    return Object.entries(value).flatMap(([key, child]) =>
+      emptyStrings(child, path ? `${path}.${key}` : key),
+    );
+  }
+  return [];
+}
+
 describe("messages", () => {
+  it("have no empty or whitespace-only strings", () => {
+    expect({ en: emptyStrings(en), ar: emptyStrings(ar) }).toEqual({ en: [], ar: [] });
+  });
+
+  it("empty-string check reports the key path", () => {
+    expect(emptyStrings({ a: { b: ["x", " "] }, c: "" })).toEqual(["a.b[1]", "c"]);
+  });
+
   it("have the same shape in English and Arabic", () => {
     expect(shape(ar)).toEqual(shape(en));
   });

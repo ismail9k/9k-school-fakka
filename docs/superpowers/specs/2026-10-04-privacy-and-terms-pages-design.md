@@ -44,7 +44,7 @@ site stays fully static.
 | 6 | Contact email | When set, rendered as a `mailto:` link. Not `hello@fakka.com` by default: that is the sender address and the issue says to use a placeholder. | None beyond the placeholder showing. |
 | 7 | Retention | "We keep it only as long as the waitlist needs it, and you can ask us to delete it any time." No fixed period — the brief doesn't set one and a promise we can't keep is worse. | A regulator or reviewer may want a concrete period; owner adds it. |
 | 8 | Providers named | Cloudflare and Resend by name, with what each does. Phrasing: they process data only to run these services for us; we don't sell or share it with anyone for their own use. | If providers change, the page must be updated. |
-| 9 | IP and browser data | Say plainly: Cloudflare sees your IP address and browser to stop bots and limit repeated attempts; we don't store it. No ads, no analytics, no tracking cookies. Mention the invite code kept in the browser tab. | If observability logs are later found to retain IPs, wording needs tightening. |
+| 9 | IP and browser data | Say plainly: Cloudflare sees your IP address and browser to stop bots and limit repeated attempts; we don't store it. No ads, no analytics, no tracking cookies. Mention the invite code kept in the browser tab. | Workers Logs (observability) may hold IPs briefly; the copy says so. Turning invocation logs off is #3's config call. |
 | 10 | Rights | See, correct, or delete your details by emailing the contact address; deleting removes your place in the queue. No self-serve tool (none exists). | — |
 | 11 | Terms scope | Waitlist and invites only: free to join; your own real name and email; one email, one place; queue place can change as others invite friends and is not a promise of invite order or timing; invite rules from the brief; we may remove sign-ups that are fake, automated, or game invites; no launch date, price, or features are final and joining doesn't guarantee access; we may change or stop the waitlist; governing law placeholder; contact. | Owner may want stronger or softer wording after legal review (open question on the issue). |
 | 12 | Links from the landing page | Footer gets a small nav with "Privacy" and "Terms" links (shown on every page that uses the footer). The under-form privacy line is left unchanged. | Visitors may miss the link at the point of sign-up; adding it there is a small follow-up. |
@@ -86,9 +86,9 @@ site stays fully static.
 
 ## Components
 
-- `src/lib/legal.ts` — details config + `missingLegalDetails()` helper.
-- `src/components/legal/LegalDetail.tsx` — renders one value or its marked
-  placeholder.
+- `src/lib/legal.ts` — details config + `hasMissingDetails()` helper.
+- `src/components/legal/LegalDetails.tsx` — `DetailsList`: a labelled `<dl>` of
+  details, each value or its marked placeholder.
 - `src/components/legal/LegalPage.tsx` — server-safe component taking a
   namespace (`"Privacy" | "Terms"`) and an ordered section list; renders
   Header/Footer with the right `path`, the h1, date, draft notice, sections,
