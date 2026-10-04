@@ -3,6 +3,7 @@ import { sendConfirmationEmail } from "./email";
 import { emailKey } from "./email-key";
 import type { Env, ExecutionContext } from "./env";
 import { json } from "./http";
+import { rateLimitKey } from "./rate-limit-key";
 import { createSignup, getPosition } from "./store";
 import { verifyTurnstile } from "./turnstile";
 import { parseSignupRequest } from "./validate";
@@ -17,7 +18,7 @@ export async function handleWaitlist(request: Request, env: Env, ctx: ExecutionC
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, { Allow: "POST" });
 
   const ip = request.headers.get("CF-Connecting-IP");
-  const { success } = await env.WAITLIST_LIMITER.limit({ key: ip ?? "unknown" });
+  const { success } = await env.WAITLIST_LIMITER.limit({ key: rateLimitKey(ip) });
   if (!success) return json({ error: "rate_limited" }, 429);
 
   if (Number(request.headers.get("Content-Length") ?? 0) > MAX_BODY_BYTES) return invalid();

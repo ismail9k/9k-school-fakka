@@ -139,6 +139,15 @@ describe("handleWaitlist", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("rate limits IPv6 visitors by their /64", async () => {
+    await call(
+      post(body, {
+        headers: { "Content-Type": "application/json", "CF-Connecting-IP": "2001:db8:85a3::1234" },
+      }),
+    );
+    expect(env.WAITLIST_LIMITER.limit).toHaveBeenCalledWith({ key: "2001:db8:85a3:0::/64" });
+  });
+
   it.each([
     ["non-JSON", "{nope"],
     ["a JSON array", "[]"],
