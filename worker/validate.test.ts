@@ -22,6 +22,10 @@ describe("parseSignupRequest", () => {
     });
   });
 
+  it("strips invisible format characters such as bidi overrides from the name", () => {
+    expect(parseSignupRequest({ ...valid, name: "Mo\u202Ena\u200B" })?.name).toBe("Mona");
+  });
+
   it("keeps Arabic names", () => {
     expect(parseSignupRequest({ ...valid, name: "منى" })?.name).toBe("منى");
   });
@@ -38,6 +42,8 @@ describe("parseSignupRequest", () => {
     ["email without @", { ...valid, email: "mona.example.com" }],
     ["email without dot in domain", { ...valid, email: "mona@example" }],
     ["email with spaces", { ...valid, email: "mo na@example.com" }],
+    ["email in angle brackets", { ...valid, email: "<mona@x.com>" }],
+    ["email with a comma", { ...valid, email: "mona,@x.com" }],
     ["long email", { ...valid, email: `${"a".repeat(250)}@x.co` }],
     ["unknown locale", { ...valid, locale: "fr" }],
     ["missing token", { ...valid, turnstileToken: undefined }],
@@ -47,12 +53,15 @@ describe("parseSignupRequest", () => {
     expect(parseSignupRequest(body)).toBeNull();
   });
 
+  it("lowercases and trims the ref before matching", () => {
+    expect(parseSignupRequest({ ...valid, ref: " K7QM2X9A " })?.ref).toBe("k7qm2x9a");
+  });
+
   it.each([
     ["missing", undefined],
     ["null", null],
     ["wrong length", "abc"],
     ["ambiguous characters", "k7qm2x9l"],
-    ["uppercase", "K7QM2X9A"],
     ["a number", 12345678],
   ])("treats a %s ref as no ref", (_label, ref) => {
     expect(parseSignupRequest({ ...valid, ref })?.ref).toBeNull();

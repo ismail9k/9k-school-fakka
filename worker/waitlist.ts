@@ -57,7 +57,7 @@ export async function handleWaitlist(request: Request, env: Env, ctx: ExecutionC
     if (created) {
       ctx.waitUntil(
         sendConfirmationEmail(
-          { to: input.email, name: input.name, locale: signup.locale, position, inviteUrl },
+          { to: input.email, locale: signup.locale, position, inviteUrl },
           { apiKey: env.RESEND_API_KEY, from: config.emailFrom, idempotencyKey: `signup-${signup.id}` },
         ),
       );

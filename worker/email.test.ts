@@ -4,12 +4,11 @@ import { buildConfirmationEmail, RESEND_URL, sendConfirmationEmail, type Confirm
 
 const en: ConfirmationEmail = {
   to: "mona@example.com",
-  name: "Mona",
   locale: "en",
   position: 1234,
   inviteUrl: "https://fakka.com/en/?ref=k7qm2x9a",
 };
-const ar: ConfirmationEmail = { ...en, name: "منى", locale: "ar", inviteUrl: "https://fakka.com/ar/?ref=k7qm2x9a" };
+const ar: ConfirmationEmail = { ...en, locale: "ar", inviteUrl: "https://fakka.com/ar/?ref=k7qm2x9a" };
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -20,7 +19,7 @@ describe("buildConfirmationEmail", () => {
   it("writes the English email with position and link", () => {
     const email = buildConfirmationEmail(en);
     expect(email.subject).toBe("You’re #1,234 on the Fakka waitlist");
-    expect(email.text).toContain("Hi Mona,");
+    expect(email.text).toContain("Hi,");
     expect(email.text).toContain("You’re #1,234 in line for Fakka.");
     expect(email.text).toContain(en.inviteUrl);
     expect(email.html).toContain('lang="en"');
@@ -31,15 +30,21 @@ describe("buildConfirmationEmail", () => {
   it("writes the Arabic email right to left with Arabic digits", () => {
     const email = buildConfirmationEmail(ar);
     expect(email.subject).toBe("إنت رقم ١٬٢٣٤ في دور فكّة");
-    expect(email.text).toContain("أهلًا منى،");
+    expect(email.text).toContain("أهلًا،");
     expect(email.html).toContain('lang="ar"');
     expect(email.html).toContain('dir="rtl"');
   });
 
-  it("escapes the name in the HTML body", () => {
-    const email = buildConfirmationEmail({ ...en, name: '<script>alert("x")</script>' });
+  it("does not include the visitor's name", () => {
+    const email = buildConfirmationEmail({ ...en, name: "Mona" } as ConfirmationEmail);
+    expect(email.html).not.toContain("Mona");
+    expect(email.text).not.toContain("Mona");
+  });
+
+  it("escapes the invite URL in the HTML body", () => {
+    const email = buildConfirmationEmail({ ...en, inviteUrl: 'https://x.test/?a="><script>alert(1)</script>' });
     expect(email.html).not.toContain("<script>");
-    expect(email.html).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
+    expect(email.html).toContain("&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;");
   });
 
   it("escapes ampersands in the link", () => {
@@ -67,8 +72,9 @@ describe("sendConfirmationEmail", () => {
     expect(body.from).toBe("Fakka <hello@fakka.com>");
     expect(body.to).toEqual(["mona@example.com"]);
     expect(body.subject).toBe("You’re #1,234 on the Fakka waitlist");
-    expect(body.html).toContain("Mona");
-    expect(body.text).toContain("Mona");
+    expect(body.html).toContain(en.inviteUrl);
+    expect(body.text).toContain(en.inviteUrl);
+    expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("skips sending without an API key", async () => {
@@ -83,6 +89,13 @@ describe("sendConfirmationEmail", () => {
   it("logs and resolves when Resend rejects", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn(async () => new Response("bad", { status: 422 })));
+    await expect(sendConfirmationEmail(en, options)).resolves.toBeUndefined();
+    expect(error).toHaveBeenCalled();
+  });
+
+  it("logs and resolves when the request times out", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new DOMException("timed out", "TimeoutError"))));
     await expect(sendConfirmationEmail(en, options)).resolves.toBeUndefined();
     expect(error).toHaveBeenCalled();
   });

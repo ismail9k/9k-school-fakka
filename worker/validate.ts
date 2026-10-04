@@ -13,7 +13,7 @@ export const INVITE_CODE_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 export const INVITE_CODE_LENGTH = 8;
 
 const INVITE_CODE_PATTERN = new RegExp(`^[${INVITE_CODE_ALPHABET}]{${INVITE_CODE_LENGTH}}$`);
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_PATTERN = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/;
 const LOCALES: readonly string[] = ["en", "ar"];
 const MAX_NAME = 80;
 const MAX_EMAIL = 254;
@@ -24,7 +24,7 @@ export function parseSignupRequest(body: unknown): SignupRequest | null {
   const { name, email, locale, ref, turnstileToken } = body as Record<string, unknown>;
 
   if (typeof name !== "string") return null;
-  const cleanName = name.replace(/\p{Cc}/gu, "").trim();
+  const cleanName = name.replace(/[\p{Cc}\p{Cf}]/gu, "").trim();
   if (cleanName === "" || cleanName.length > MAX_NAME) return null;
 
   if (typeof email !== "string") return null;
@@ -38,7 +38,8 @@ export function parseSignupRequest(body: unknown): SignupRequest | null {
   }
 
   // A broken invite code shouldn't cost a visitor their signup.
-  const cleanRef = typeof ref === "string" && INVITE_CODE_PATTERN.test(ref) ? ref : null;
+  const lowerRef = typeof ref === "string" ? ref.trim().toLowerCase() : "";
+  const cleanRef = INVITE_CODE_PATTERN.test(lowerRef) ? lowerRef : null;
 
   return { name: cleanName, email: cleanEmail, locale: locale as Locale, ref: cleanRef, turnstileToken };
 }

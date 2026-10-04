@@ -22,6 +22,7 @@
       "emailMissing": "Please enter your email.",
       "emailInvalid": "Please enter a valid email.",
       "verify": "One moment, we’re checking you’re not a bot. Try again in a few seconds.",
+      "verifyBlocked": "We couldn’t load the bot check. Turn off any ad blocker or reload the page, then try again.",
       "tooMany": "Too many tries. Wait a minute, then try again."
     },
     "success": {
@@ -34,7 +35,7 @@
   },
   "Email": {
     "subject": "You’re #{position} on the Fakka waitlist",
-    "greeting": "Hi {name},",
+    "greeting": "Hi,",
     "position": "You’re #{position} in line for Fakka.",
     "invite": "Want to move up? Share your invite link. Each friend who joins with it moves you up the queue.",
     "linkLabel": "Your invite link:",

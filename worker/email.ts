@@ -7,7 +7,6 @@ export const RESEND_URL = "https://api.resend.com/emails";
 
 export type ConfirmationEmail = {
   to: string;
-  name: string;
   locale: Locale;
   position: number;
   inviteUrl: string;
@@ -28,9 +27,9 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-export function buildConfirmationEmail({ name, locale, position, inviteUrl }: ConfirmationEmail) {
+export function buildConfirmationEmail({ locale, position, inviteUrl }: ConfirmationEmail) {
   const t = copy[locale];
-  const values = { name, position: formatNumber(position, locale) };
+  const values = { position: formatNumber(position, locale) };
   const subject = fill(t.subject, values);
   const lines = {
     greeting: fill(t.greeting, values),
@@ -92,6 +91,7 @@ export async function sendConfirmationEmail(
         "Content-Type": "application/json",
         "Idempotency-Key": options.idempotencyKey,
       },
+      signal: AbortSignal.timeout(10_000),
       body: JSON.stringify({ from: options.from, to: [email.to], subject, html, text }),
     });
     if (!response.ok) {
