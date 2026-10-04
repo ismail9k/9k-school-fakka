@@ -2,7 +2,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { LocaleSwitch } from "./LocaleSwitch";
 import { Wordmark } from "./Wordmark";
 
-export function Header() {
+export function Header({ path = "" }: { path?: string }) {
   const t = useTranslations("Header");
   const locale = useLocale();
 
@@ -12,7 +12,7 @@ export function Header() {
         <a href={`/${locale}/`} aria-label={t("home")}>
           <Wordmark />
         </a>
-        <LocaleSwitch />
+        <LocaleSwitch path={path} />
       </div>
     </header>
   );

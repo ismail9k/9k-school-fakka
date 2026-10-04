@@ -57,7 +57,10 @@
   },
   "Footer": {
     "privacy": "بنحتفظ بس باللي القايمة محتاجاه، وعمرنا ما هنشاركه أو نبيعه.",
-    "rights": "© {year} فكّة"
+    "rights": "© {year} فكّة",
+    "legalNav": "روابط قانونية",
+    "privacyLink": "الخصوصية",
+    "termsLink": "الشروط"
   },
   "Legal": {
     "updated": "آخر تحديث: {date}",

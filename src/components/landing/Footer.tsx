@@ -4,7 +4,7 @@ import { formatNumber } from "@/lib/format";
 import { LocaleSwitch } from "./LocaleSwitch";
 import { Wordmark } from "./Wordmark";
 
-export function Footer() {
+export function Footer({ path = "" }: { path?: string }) {
   const t = useTranslations("Footer");
   const locale = useLocale() as Locale;
   // No grouping, so English shows "2026" (not "2,026") and Arabic gets Arabic digits.
@@ -15,8 +15,16 @@ export function Footer() {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-5 py-8 text-sm text-ink-soft md:flex-row md:items-center md:justify-between md:px-10">
         <Wordmark className="text-xl" />
         <p>{t("privacy")}</p>
+        <nav aria-label={t("legalNav")} className="flex gap-4">
+          <a href={`/${locale}/privacy/`} className="underline-offset-4 hover:text-ink hover:underline">
+            {t("privacyLink")}
+          </a>
+          <a href={`/${locale}/terms/`} className="underline-offset-4 hover:text-ink hover:underline">
+            {t("termsLink")}
+          </a>
+        </nav>
         <div className="flex items-center gap-4">
-          <LocaleSwitch />
+          <LocaleSwitch path={path} />
           <span>{t("rights", { year })}</span>
         </div>
       </div>

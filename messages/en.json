@@ -57,7 +57,10 @@
   },
   "Footer": {
     "privacy": "We keep only what the waitlist needs. Never shared or sold.",
-    "rights": "© {year} Fakka"
+    "rights": "© {year} Fakka",
+    "legalNav": "Legal",
+    "privacyLink": "Privacy",
+    "termsLink": "Terms"
   },
   "Legal": {
     "updated": "Last updated: {date}",
