@@ -162,6 +162,53 @@ describe("handleWaitlist", () => {
     expect(await count()).toBe(0);
   });
 
+  it("stops reading a chunked body without Content-Length once it passes 4 KB", async () => {
+    let pulled = 0;
+    const chunk = new TextEncoder().encode("a".repeat(1024));
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled++;
+        if (pulled > 1000) controller.close();
+        else controller.enqueue(chunk);
+      },
+    });
+    const request = new Request("https://fakka.com/api/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "CF-Connecting-IP": "1.2.3.4" },
+      body: stream,
+      duplex: "half",
+    } as RequestInit);
+    expect(request.headers.get("Content-Length")).toBeNull();
+
+    const { status, body: res } = await call(request);
+
+    expect(status).toBe(400);
+    expect(res).toEqual({ error: "invalid_request" });
+    expect(pulled).toBeLessThan(20);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("accepts a chunked body under 4 KB", async () => {
+    const bytes = new TextEncoder().encode(JSON.stringify(body));
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(bytes.slice(0, 10));
+        controller.enqueue(bytes.slice(10));
+        controller.close();
+      },
+    });
+    const request = new Request("https://fakka.com/api/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "CF-Connecting-IP": "1.2.3.4" },
+      body: stream,
+      duplex: "half",
+    } as RequestInit);
+
+    const { status } = await call(request);
+
+    expect(status).toBe(200);
+  });
+
   it("refuses and writes nothing when Turnstile rejects the token", async () => {
     siteverify = async () => Response.json({ success: false });
     const { status, body: res } = await call(post());
