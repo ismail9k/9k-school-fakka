@@ -25,7 +25,8 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
 - Preview on the Workers runtime: `pnpm preview` (build + `wrangler dev`)
 - Deploy: `pnpm deploy` (build + `wrangler deploy`)
 - Lint: `pnpm lint`
-- Test: no test runner is set up yet.
+- Test: `pnpm test` (Vitest + Testing Library, jsdom). Watch mode: `pnpm test:watch`.
+  Tests sit next to the code they cover (`*.test.ts(x)`).
 
 ### Architecture
 
@@ -34,6 +35,12 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
   (`wrangler.jsonc`, no Worker script). There is no server at runtime: no
   middleware, route handlers, server actions, or `next/image` optimization.
   Anything dynamic (e.g. the waitlist) needs a separate backend.
+- **Waitlist endpoint.** The form posts `{ name, email, locale, ref }` to
+  `NEXT_PUBLIC_WAITLIST_ENDPOINT` and expects `200 { position, inviteUrl }`
+  (`src/lib/waitlist.ts`). The value is inlined at build time. Without it,
+  `pnpm dev` uses a local stub and production builds show the form as disabled
+  ("Sign-ups open very soon"). Invite links carry `?ref=`; the root `/` redirect
+  keeps the query string.
 - **i18n via next-intl without middleware.** Locales live in `src/i18n/routing.ts`
   (`en` default, `ar`; `rtlLocales` drives `dir`). Messages are `messages/{locale}.json`,
   loaded by `src/i18n/request.ts`. Every page under `src/app/[locale]/` must call
