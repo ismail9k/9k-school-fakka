@@ -16,10 +16,18 @@ export function Footer({ path = "" }: { path?: string }) {
         <Wordmark className="text-xl" />
         <p>{t("privacy")}</p>
         <nav aria-label={t("legalNav")} className="flex gap-4">
-          <a href={`/${locale}/privacy/`} className="underline-offset-4 hover:text-ink hover:underline">
+          <a
+            href={`/${locale}/privacy/`}
+            aria-current={path === "privacy/" ? "page" : undefined}
+            className="underline-offset-4 hover:text-ink hover:underline"
+          >
             {t("privacyLink")}
           </a>
-          <a href={`/${locale}/terms/`} className="underline-offset-4 hover:text-ink hover:underline">
+          <a
+            href={`/${locale}/terms/`}
+            aria-current={path === "terms/" ? "page" : undefined}
+            className="underline-offset-4 hover:text-ink hover:underline"
+          >
             {t("termsLink")}
           </a>
         </nav>

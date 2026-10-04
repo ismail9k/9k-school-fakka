@@ -22,6 +22,21 @@ describe("Footer", () => {
     expect(within(nav).getByRole("link", { name: "الشروط" })).toHaveAttribute("href", "/ar/terms/");
   });
 
+  it("marks the legal link for the page being shown", () => {
+    withIntl(<Footer path="privacy/" />);
+    const nav = screen.getByRole("navigation", { name: "Legal" });
+    expect(within(nav).getByRole("link", { name: "Privacy" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("link", { name: "Terms" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("marks no legal link on the landing page", () => {
+    withIntl(<Footer />);
+    const nav = screen.getByRole("navigation", { name: "Legal" });
+    for (const link of within(nav).getAllByRole("link")) {
+      expect(link).not.toHaveAttribute("aria-current");
+    }
+  });
+
   it("switches language to the same page", () => {
     withIntl(<Footer path="terms/" />);
     expect(screen.getByRole("link", { name: "العربية" })).toHaveAttribute("href", "/ar/terms/");
