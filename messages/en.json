@@ -20,7 +20,10 @@
     "errors": {
       "nameMissing": "Please enter your name.",
       "emailMissing": "Please enter your email.",
-      "emailInvalid": "Please enter a valid email."
+      "emailInvalid": "Please enter a valid email.",
+      "verify": "One moment, we’re checking you’re not a bot. Try again in a few seconds.",
+      "verifyBlocked": "We couldn’t load the bot check. Turn off any ad blocker or reload the page, then try again.",
+      "tooMany": "Too many tries. Wait a minute, then try again."
     },
     "success": {
       "position": "You’re <num>#{position}</num>",
@@ -29,6 +32,16 @@
       "copy": "Copy",
       "copied": "Copied"
     }
+  },
+  "Email": {
+    "subject": "You’re #{position} on the Fakka waitlist",
+    "greeting": "Hi,",
+    "position": "You’re #{position} in line for Fakka.",
+    "invite": "Want to move up? Share your invite link. Each friend who joins with it moves you up the queue.",
+    "linkLabel": "Your invite link:",
+    "launch": "We’ll email you when Fakka is ready. There’s no date yet, but you’ll hear it from us first.",
+    "signoff": "The Fakka team",
+    "footer": "You’re getting this because you joined the Fakka waitlist on fakka.com. We only email you about Fakka’s launch, and we never share your details."
   },
   "Header": {
     "home": "Fakka home"
@@ -44,7 +57,169 @@
   },
   "Footer": {
     "privacy": "We keep only what the waitlist needs. Never shared or sold.",
-    "rights": "© {year} Fakka"
+    "rights": "© {year} Fakka",
+    "legalNav": "Legal",
+    "privacyLink": "Privacy",
+    "termsLink": "Terms"
+  },
+  "Legal": {
+    "updated": "Last updated: {date}",
+    "draftNotice": "This page is still a draft. Anything in [square brackets] is still being confirmed.",
+    "details": {
+      "operator": "Run by",
+      "contact": "Email",
+      "law": "Governing law"
+    },
+    "placeholders": {
+      "operator": "[Operator name — to be confirmed]",
+      "contact": "[Contact email — to be confirmed]",
+      "law": "[Governing law — to be confirmed]"
+    },
+    "privacyLink": "Read our privacy policy"
+  },
+  "Privacy": {
+    "metaTitle": "Privacy — Fakka",
+    "metaDescription": "What the Fakka waitlist keeps, why, and how to reach us.",
+    "title": "Privacy",
+    "intro": "You gave us your name and email to join the Fakka waitlist. Here’s exactly what we do with them, in plain words.",
+    "sections": {
+      "who": {
+        "title": "Who runs Fakka",
+        "paragraphs": [
+          "Fakka and its waitlist are run by the people below. If you have a question about your details, ask us here."
+        ]
+      },
+      "keep": {
+        "title": "What we keep",
+        "paragraphs": [
+          "Only what the waitlist needs:"
+        ],
+        "items": [
+          "Your name",
+          "Your email",
+          "The language you signed up in",
+          "When you joined",
+          "Who invited you, and who joined with your invite link"
+        ]
+      },
+      "why": {
+        "title": "Why we keep it",
+        "paragraphs": [
+          "To give you a place in the queue, make your own invite link, move you up when friends join, and email you about Fakka’s launch. That’s all."
+        ]
+      },
+      "emails": {
+        "title": "Emails we send",
+        "paragraphs": [
+          "Right after you join, we send one email with your place in the queue and your invite link. After that, we only email you about Fakka’s launch, in the language you signed up in.",
+          "No newsletters, no ads, and nothing from anyone else."
+        ]
+      },
+      "notKept": {
+        "title": "What we don’t keep",
+        "items": [
+          "We don’t keep your IP address with your details. Cloudflare sees it, along with some details from your browser, only to check you’re a real person and to stop repeated tries. Its logs may hold it for a short time.",
+          "No ads, no analytics, and no tracking cookies.",
+          "If you open an invite link, your browser remembers its code until you close the tab, so your friend gets the credit. It stays on your device."
+        ]
+      },
+      "helpers": {
+        "title": "Who helps us run it",
+        "paragraphs": [
+          "We never sell your details, and we never share them with anyone for their own use.",
+          "Two services handle them for us, only to run the waitlist:"
+        ],
+        "items": [
+          "Cloudflare: runs the site, stores the waitlist, and checks for bots.",
+          "Resend: sends our emails."
+        ]
+      },
+      "howLong": {
+        "title": "How long we keep it",
+        "paragraphs": [
+          "Only as long as the waitlist needs it. You can ask us to delete it at any time."
+        ]
+      },
+      "choices": {
+        "title": "Your choices",
+        "paragraphs": [
+          "You can ask to see the details we have about you, fix them, or delete them. Just email us at the address below. If you delete them, you also give up your place in the queue."
+        ]
+      },
+      "changes": {
+        "title": "If this changes",
+        "paragraphs": [
+          "If we change how we handle your details, we’ll update this page and the date at the top."
+        ]
+      }
+    }
+  },
+  "Terms": {
+    "metaTitle": "Terms — Fakka",
+    "metaDescription": "The rules of the Fakka waitlist and invites.",
+    "title": "Terms",
+    "intro": "These are the rules of the Fakka waitlist. They’re short, and they only cover the waitlist and invites.",
+    "sections": {
+      "what": {
+        "title": "What this is",
+        "paragraphs": [
+          "Fakka is an app we’re still building. Right now there’s only a waitlist: no app, no account, and nothing to pay for."
+        ]
+      },
+      "joining": {
+        "title": "Joining the waitlist",
+        "items": [
+          "It’s free.",
+          "Use your own name and an email you can read.",
+          "One person, one place: the same email joins only once, however it’s typed."
+        ]
+      },
+      "queue": {
+        "title": "Your place in the queue",
+        "paragraphs": [
+          "We show your place when you join. It can change as other people invite friends, so treat it as a guide, not a promise of when you’ll be invited."
+        ]
+      },
+      "invites": {
+        "title": "Inviting friends",
+        "items": [
+          "Each friend who joins with your link moves you up the queue.",
+          "You can’t invite yourself, and each friend counts once.",
+          "Fake, automated or made-up sign-ups aren’t allowed. We may remove sign-ups that break these rules, along with any places they earned."
+        ]
+      },
+      "promises": {
+        "title": "What we can’t promise yet",
+        "paragraphs": [
+          "Fakka’s launch date, price and features aren’t final. Joining the waitlist doesn’t guarantee you access, a price or a feature.",
+          "We may change the waitlist or stop it. If we do, we’ll update this page."
+        ]
+      },
+      "data": {
+        "title": "Your details",
+        "paragraphs": [
+          "What we keep, and why, is on our privacy page."
+        ]
+      },
+      "changes": {
+        "title": "Changes to these terms",
+        "paragraphs": [
+          "If we change these terms, we’ll update this page and the date at the top."
+        ]
+      },
+      "law": {
+        "title": "Governing law",
+        "paragraphs": [
+          "These terms are governed by the law below."
+        ]
+      },
+      "contact": {
+        "title": "Questions?",
+        "paragraphs": [
+          "Email us and we’ll get back to you."
+        ]
+      }
+    }
   },
   "Features": {
     "kicker": "What Fakka does",

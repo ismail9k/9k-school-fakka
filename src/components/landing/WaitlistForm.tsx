@@ -14,15 +14,19 @@ import {
   getWaitlistMode,
   readRef,
   submitWaitlist,
+  WaitlistError,
   type WaitlistMode,
   type WaitlistResult,
 } from "@/lib/waitlist";
 import { formatNumber } from "@/lib/format";
+import { TurnstileWidget, type TurnstileHandle } from "./TurnstileWidget";
+
+type ErrorReason = "failed" | "rate_limited" | "verification" | "verification_blocked" | "verification_rejected";
 
 type Status =
   | { kind: "idle" }
   | { kind: "submitting" }
-  | { kind: "error" }
+  | { kind: "error"; reason: ErrorReason }
   | { kind: "success"; result: WaitlistResult };
 
 const fieldClass =
@@ -34,6 +38,11 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   // State updates are async, so guard against a second submit in the same tick.
   const inFlight = useRef(false);
+  const [token, setToken] = useState<string | null>(null);
+  // The bot check could not load or render (often an ad blocker).
+  const [checkFailed, setCheckFailed] = useState(false);
+  const [checkAttempt, setCheckAttempt] = useState(0);
+  const turnstile = useRef<TurnstileHandle>(null);
   // Server HTML renders disabled; a submit before hydration would do a native
   // GET and put the name and email in the URL.
   const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
@@ -46,6 +55,11 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
     return <Success result={status.result} locale={locale} />;
   }
 
+  function handleToken(next: string | null) {
+    setToken(next);
+    if (next) setStatus((current) => (current.kind === "error" && current.reason === "verification" ? { kind: "idle" } : current));
+  }
+
   const unavailable = mode.kind === "unavailable";
   const submitting = status.kind === "submitting";
 
@@ -53,9 +67,10 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
   const handleInvalid: FormEventHandler<HTMLInputElement> = (event) => {
     const input = event.currentTarget;
     const { valueMissing, patternMismatch, typeMismatch } = input.validity;
-    if (valueMissing || patternMismatch) {
-      input.setCustomValidity(t(input.name === "name" ? "errors.nameMissing" : "errors.emailMissing"));
-    } else if (typeMismatch) {
+    const isName = input.name === "name";
+    if (valueMissing || (isName && patternMismatch)) {
+      input.setCustomValidity(t(isName ? "errors.nameMissing" : "errors.emailMissing"));
+    } else if (typeMismatch || patternMismatch) {
       input.setCustomValidity(t("errors.emailInvalid"));
     }
   };
@@ -74,6 +89,18 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
     const data = new FormData(form);
     if (data.get("website")) return;
 
+    if (mode.kind === "remote" && !token) {
+      if (checkFailed) {
+        // Remount the widget to try loading the check again.
+        setCheckFailed(false);
+        setCheckAttempt((n) => n + 1);
+        setStatus({ kind: "error", reason: "verification_blocked" });
+      } else {
+        setStatus({ kind: "error", reason: "verification" });
+      }
+      return;
+    }
+
     inFlight.current = true;
     setStatus({ kind: "submitting" });
     try {
@@ -83,12 +110,17 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
           email: String(data.get("email")).trim(),
           locale,
           ref: readRef(window.location.search) ?? recallRef(),
+          turnstileToken: token,
         },
         mode,
       );
       setStatus({ kind: "success", result });
-    } catch {
-      setStatus({ kind: "error" });
+    } catch (error) {
+      const reason = error instanceof WaitlistError ? error.reason : "failed";
+      // Unlike "verification" (still waiting), this notice stays when the fresh token arrives.
+      setStatus({ kind: "error", reason: reason === "verification" ? "verification_rejected" : reason });
+      // The token was spent on this attempt.
+      if (mode.kind === "remote") turnstile.current?.reset();
     } finally {
       inFlight.current = false;
     }
@@ -120,6 +152,9 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
             name="email"
             type="email"
             required
+            // Match the server: it also wants a dot in the domain and at most 254 characters.
+            pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+            maxLength={254}
             dir="ltr"
             autoComplete="email"
             placeholder={t("emailPlaceholder")}
@@ -136,6 +171,17 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
         </button>
       </fieldset>
 
+      {mode.kind === "remote" && (
+        <TurnstileWidget
+          key={checkAttempt}
+          ref={turnstile}
+          siteKey={mode.turnstileSiteKey}
+          locale={locale}
+          onToken={handleToken}
+          onError={() => setCheckFailed(true)}
+        />
+      )}
+
       {/* Honeypot: invisible to people and screen readers, tempting to bots. */}
       <div aria-hidden="true" className="sr-only">
         <label>
@@ -146,7 +192,13 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
 
       {status.kind === "error" && (
         <p role="alert" className="mt-4 text-sm text-gold">
-          {t("error")}
+          {status.reason === "verification" || status.reason === "verification_rejected"
+            ? t("errors.verify")
+            : status.reason === "verification_blocked"
+              ? t("errors.verifyBlocked")
+              : status.reason === "rate_limited"
+              ? t("errors.tooMany")
+              : t("error")}
         </p>
       )}
       {unavailable && <p className="mt-4 text-sm text-paper">{t("unavailable")}</p>}

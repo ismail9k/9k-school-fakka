@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { renderToString } from "react-dom/server";
@@ -6,9 +6,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ar from "../../../messages/ar.json";
 import en from "../../../messages/en.json";
 import type { WaitlistMode } from "@/lib/waitlist";
+import * as turnstileLib from "@/lib/turnstile";
 import { WaitlistForm } from "./WaitlistForm";
 
-const remote: WaitlistMode = { kind: "remote", endpoint: "https://api.example.com/waitlist" };
+const remote: WaitlistMode = {
+  kind: "remote",
+  endpoint: "https://api.example.com/waitlist",
+  turnstileSiteKey: "site-key",
+};
 const INVITE = "https://fakka.app/en/?ref=abc123";
 
 function renderForm({ locale = "en", mode = remote }: { locale?: "en" | "ar"; mode?: WaitlistMode } = {}) {
@@ -25,6 +30,30 @@ function stubFetch(impl: () => Promise<Response>) {
   return fetch;
 }
 
+// Stands in for Cloudflare's script: hands out tokens in order.
+function stubTurnstile({ autoSolve = true } = {}) {
+  let errorCallback: (() => void) | undefined;
+  let issued = 0;
+  let callback: ((token: string) => void) | undefined;
+  const api = {
+    render: vi.fn((_el: HTMLElement, options: { callback?: (token: string) => void; "error-callback"?: () => void }) => {
+      callback = options.callback;
+      errorCallback = options["error-callback"];
+      if (autoSolve) callback?.(`token-${++issued}`);
+      return "widget-1";
+    }),
+    reset: vi.fn(() => {
+      if (autoSolve) callback?.(`token-${++issued}`);
+    }),
+    remove: vi.fn(),
+    // Test helpers, not part of Cloudflare's API.
+    solve: (token: string) => callback?.(token),
+    fail: () => errorCallback?.(),
+  };
+  vi.stubGlobal("turnstile", api);
+  return api;
+}
+
 const joined = () =>
   Promise.resolve(new Response(JSON.stringify({ position: 1234, inviteUrl: INVITE }), { status: 200 }));
 
@@ -37,6 +66,7 @@ async function fillAndSubmit(user: UserEvent, name = "Mona", email = "mona@examp
 beforeEach(() => {
   window.history.replaceState({}, "", "/en/");
   window.sessionStorage.clear();
+  stubTurnstile();
 });
 
 afterEach(() => {
@@ -71,6 +101,7 @@ describe("WaitlistForm", () => {
       email: "mona@example.com",
       locale: "en",
       ref: "friend42",
+      turnstileToken: "token-1",
     });
   });
 
@@ -159,6 +190,24 @@ describe("WaitlistForm", () => {
     );
   });
 
+  it("rejects an email without a dot in the domain, which the server would refuse", async () => {
+    const fetch = stubFetch(joined);
+    const user = userEvent.setup();
+    renderForm();
+
+    await fillAndSubmit(user, "Mona", "mona@gmail");
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect((screen.getByLabelText("Email") as HTMLInputElement).validationMessage).toBe(
+      "Please enter a valid email.",
+    );
+  });
+
+  it("limits the email to 254 characters, like the server", () => {
+    renderForm();
+    expect(screen.getByLabelText("Email")).toHaveAttribute("maxLength", "254");
+  });
+
   it("uses Arabic validation messages on the Arabic page", async () => {
     const fetch = stubFetch(joined);
     const user = userEvent.setup();
@@ -238,6 +287,111 @@ describe("WaitlistForm", () => {
 
     const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     expect(JSON.parse(init.body as string).ref).toBe("friend42");
+  });
+
+  it("renders the bot check in the page language", async () => {
+    const turnstile = stubTurnstile();
+    renderForm({ locale: "ar" });
+    await vi.waitFor(() => expect(turnstile.render).toHaveBeenCalled());
+    expect(turnstile.render.mock.calls[0][1]).toMatchObject({ sitekey: "site-key", language: "ar", action: "waitlist" });
+  });
+
+  it("waits for the bot check instead of sending without a token", async () => {
+    stubTurnstile({ autoSolve: false });
+    const fetch = stubFetch(joined);
+    const user = userEvent.setup();
+    renderForm();
+
+    await fillAndSubmit(user);
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "One moment, we’re checking you’re not a bot. Try again in a few seconds.",
+    );
+  });
+
+  it("gets a fresh token and explains when the bot check fails on the server", async () => {
+    const turnstile = stubTurnstile();
+    const fetch = stubFetch(() => Promise.resolve(new Response("{}", { status: 403 })));
+    const user = userEvent.setup();
+    renderForm();
+
+    await fillAndSubmit(user);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("checking you’re not a bot");
+    expect(turnstile.reset).toHaveBeenCalledTimes(1);
+
+    fetch.mockImplementation(joined);
+    await user.click(screen.getByRole("button", { name: "Join" }));
+    await screen.findByRole("status");
+    const [, init] = fetch.mock.calls[1] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string).turnstileToken).toBe("token-2");
+  });
+
+  it("asks to wait after too many tries", async () => {
+    stubFetch(() => Promise.resolve(new Response("{}", { status: 429 })));
+    const user = userEvent.setup();
+    renderForm({ locale: "ar" });
+
+    await user.type(screen.getByLabelText("اسمك"), "منى");
+    await user.type(screen.getByLabelText("إيميلك"), "mona@example.com");
+    await user.click(screen.getByRole("button", { name: "سجّلني" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("محاولات كتير. استنّى دقيقة وجرّب تاني.");
+  });
+
+  it("does not load the bot check in stub mode", async () => {
+    const turnstile = stubTurnstile();
+    renderForm({ mode: { kind: "stub" } });
+    await act(async () => {});
+    expect(turnstile.render).not.toHaveBeenCalled();
+  });
+
+  it("explains a blocked bot check and tries to load it again on the next submit", async () => {
+    const turnstile = stubTurnstile({ autoSolve: false });
+    const fetch = stubFetch(joined);
+    const user = userEvent.setup();
+    renderForm();
+    await vi.waitFor(() => expect(turnstile.render).toHaveBeenCalledTimes(1));
+
+    act(() => turnstile.fail());
+    await fillAndSubmit(user);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("We couldn’t load the bot check.");
+    expect(fetch).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(turnstile.render).toHaveBeenCalledTimes(2));
+
+    // Not failed again: the next submit is the plain "wait a moment" notice.
+    await user.click(screen.getByRole("button", { name: "Join" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("checking you’re not a bot");
+  });
+
+  it("treats a bot check script that fails to load as blocked", async () => {
+    const turnstile = stubTurnstile({ autoSolve: false });
+    vi.spyOn(turnstileLib, "loadTurnstile").mockRejectedValueOnce(new Error("blocked"));
+    const user = userEvent.setup();
+    renderForm();
+    await act(async () => {});
+
+    await fillAndSubmit(user);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("We couldn’t load the bot check.");
+    await vi.waitFor(() => expect(turnstile.render).toHaveBeenCalledTimes(1));
+  });
+
+  it("clears the wait notice when the bot check token arrives", async () => {
+    const turnstile = stubTurnstile({ autoSolve: false });
+    stubFetch(joined);
+    const user = userEvent.setup();
+    renderForm();
+    await vi.waitFor(() => expect(turnstile.render).toHaveBeenCalled());
+
+    await fillAndSubmit(user);
+    expect(await screen.findByRole("alert")).toHaveTextContent("checking you’re not a bot");
+
+    act(() => turnstile.solve("token-1"));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("renders disabled until hydrated, so an early submit cannot put the email in the URL", () => {

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  WaitlistError,
   getWaitlistMode,
   parseWaitlistResponse,
   readRef,
@@ -13,8 +14,13 @@ const input: WaitlistInput = {
   email: "mona@example.com",
   locale: "ar",
   ref: "friend42",
+  turnstileToken: "tok",
 };
-const remote: WaitlistMode = { kind: "remote", endpoint: "https://api.example.com/waitlist" };
+const remote: WaitlistMode = {
+  kind: "remote",
+  endpoint: "https://api.example.com/waitlist",
+  turnstileSiteKey: "site-key",
+};
 
 function stubFetch(impl: () => Promise<Response>) {
   const fetch = vi.fn(impl);
@@ -38,23 +44,39 @@ afterEach(() => {
 });
 
 describe("getWaitlistMode", () => {
-  it("uses the endpoint when one is configured", () => {
-    expect(getWaitlistMode({ endpoint: "https://x.test/join", nodeEnv: "production" })).toEqual({
+  it("uses the endpoint when it and the Turnstile site key are configured", () => {
+    expect(getWaitlistMode({ endpoint: "/api/waitlist", siteKey: "sk", nodeEnv: "production" })).toEqual({
       kind: "remote",
-      endpoint: "https://x.test/join",
+      endpoint: "/api/waitlist",
+      turnstileSiteKey: "sk",
+    });
+  });
+
+  it("is unavailable when the endpoint has no Turnstile site key", () => {
+    expect(getWaitlistMode({ endpoint: "/api/waitlist", siteKey: undefined, nodeEnv: "production" })).toEqual({
+      kind: "unavailable",
+    });
+    expect(getWaitlistMode({ endpoint: "/api/waitlist", siteKey: "", nodeEnv: "development" })).toEqual({
+      kind: "unavailable",
     });
   });
 
   it("falls back to the stub in development", () => {
-    expect(getWaitlistMode({ endpoint: undefined, nodeEnv: "development" })).toEqual({ kind: "stub" });
+    expect(getWaitlistMode({ endpoint: undefined, siteKey: undefined, nodeEnv: "development" })).toEqual({
+      kind: "stub",
+    });
   });
 
   it("is unavailable in production without an endpoint", () => {
-    expect(getWaitlistMode({ endpoint: undefined, nodeEnv: "production" })).toEqual({ kind: "unavailable" });
+    expect(getWaitlistMode({ endpoint: undefined, siteKey: "sk", nodeEnv: "production" })).toEqual({
+      kind: "unavailable",
+    });
   });
 
   it("treats an empty endpoint as missing", () => {
-    expect(getWaitlistMode({ endpoint: "", nodeEnv: "production" })).toEqual({ kind: "unavailable" });
+    expect(getWaitlistMode({ endpoint: "", siteKey: "sk", nodeEnv: "production" })).toEqual({
+      kind: "unavailable",
+    });
   });
 });
 
@@ -117,9 +139,16 @@ describe("submitWaitlist", () => {
     expect(JSON.parse(init.body as string)).toEqual(input);
   });
 
-  it("rejects on a non-2xx response", async () => {
-    stubFetch(json({ error: "nope" }, 500));
-    await expect(submitWaitlist(input, remote)).rejects.toThrow();
+  it.each([
+    [429, "rate_limited"],
+    [403, "verification"],
+    [400, "failed"],
+    [500, "failed"],
+  ])("rejects a %i response with reason %s", async (status, reason) => {
+    stubFetch(json({ error: "x" }, status));
+    const error = await submitWaitlist(input, remote).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(WaitlistError);
+    expect((error as WaitlistError).reason).toBe(reason);
   });
 
   it("rejects on a network failure", async () => {
