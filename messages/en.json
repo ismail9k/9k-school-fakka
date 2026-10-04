@@ -59,6 +59,21 @@
     "privacy": "We keep only what the waitlist needs. Never shared or sold.",
     "rights": "© {year} Fakka"
   },
+  "Legal": {
+    "updated": "Last updated: {date}",
+    "draftNotice": "This page is still a draft. Anything in [square brackets] is still being confirmed.",
+    "details": {
+      "operator": "Run by",
+      "contact": "Email",
+      "law": "Governing law"
+    },
+    "placeholders": {
+      "operator": "[Operator name — to be confirmed]",
+      "contact": "[Contact email — to be confirmed]",
+      "law": "[Governing law — to be confirmed]"
+    },
+    "privacyLink": "Read our privacy policy"
+  },
   "Features": {
     "kicker": "What Fakka does",
     "title": "Small change, finally visible.",
