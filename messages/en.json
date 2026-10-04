@@ -118,7 +118,7 @@
       "notKept": {
         "title": "What we don’t keep",
         "items": [
-          "We don’t keep your IP address with your details. Cloudflare sees it, and your browser, only to check you’re a real person and to stop repeated tries, and its logs may hold it for a short time.",
+          "We don’t keep your IP address with your details. Cloudflare sees it, along with some details from your browser, only to check you’re a real person and to stop repeated tries. Its logs may hold it for a short time.",
           "No ads, no analytics, and no tracking cookies.",
           "If you open an invite link, your browser remembers its code until you close the tab, so your friend gets the credit. It stays on your device."
         ]
