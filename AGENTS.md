@@ -67,6 +67,11 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
   rendered in `src/app/[locale]/layout.tsx`. Pages outside `[locale]`
   (`src/app/page.tsx`, `src/app/not-found.tsx`) render their own `<html>`.
   The root `/` page redirects in the browser based on `navigator.language`.
+- **Privacy and Terms.** `/{locale}/privacy/` and `/{locale}/terms/` render
+  `src/components/legal/*` from the `Legal`, `Privacy`, and `Terms` message
+  namespaces. Operator name, contact email, and governing law live in
+  `src/lib/legal.ts` (`null` = marked placeholder plus a draft notice); bump
+  `LEGAL_LAST_UPDATED` when the copy changes.
 - Internal links use trailing-slash locale paths (`/en/`, `/ar/`).
 - Path alias `@/*` → `src/*`. Styling is Tailwind CSS v4 (`src/app/globals.css`).
 
