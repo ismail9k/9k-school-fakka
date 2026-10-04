@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import ar from "../../../messages/ar.json";
 import en from "../../../messages/en.json";
 import type { LegalDetails } from "@/lib/legal";
+import { LegalPage } from "./LegalPage";
 import { PrivacyContent } from "./PrivacyContent";
 import { TermsContent } from "./TermsContent";
 
@@ -95,5 +96,15 @@ describe("TermsContent", () => {
     withIntl(<TermsContent details={empty} />);
     const header = screen.getByRole("banner");
     expect(within(header).getByRole("link", { name: en.LocaleSwitch.label })).toHaveAttribute("href", "/ar/terms/");
+  });
+});
+
+describe("LegalPage", () => {
+  it("only accepts extras for the page's own sections (checked by tsc)", () => {
+    const misspelled = () => (
+      // @ts-expect-error -- "contacts" is not one of the page's sections, so its box would silently vanish.
+      <LegalPage namespace="Terms" path="terms/" sections={["contact"] as const} details={empty} detailKinds={[]} extras={{ contacts: null }} />
+    );
+    expect(typeof misspelled).toBe("function");
   });
 });

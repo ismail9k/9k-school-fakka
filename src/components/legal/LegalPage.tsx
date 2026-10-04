@@ -8,7 +8,7 @@ import { type DetailKind, hasMissingDetails, LEGAL_LAST_UPDATED, type LegalDetai
 
 type Section = { title: string; paragraphs?: string[]; items?: string[] };
 
-export function LegalPage({
+export function LegalPage<K extends string>({
   namespace,
   path,
   sections,
@@ -18,11 +18,12 @@ export function LegalPage({
 }: {
   namespace: "Privacy" | "Terms";
   path: string;
-  sections: readonly string[];
+  sections: readonly K[];
   details: LegalDetails;
   /** The details this page shows; only these decide the draft notice. */
   detailKinds: readonly DetailKind[];
-  extras?: Partial<Record<string, ReactNode>>;
+  // NoInfer: keys come from `sections` only, so a misspelled extras key is a type error.
+  extras?: Partial<Record<NoInfer<K>, ReactNode>>;
 }) {
   const t = useTranslations(namespace);
   const tl = useTranslations("Legal");
