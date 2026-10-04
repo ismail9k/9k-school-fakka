@@ -8,7 +8,11 @@ import en from "../../../messages/en.json";
 import type { WaitlistMode } from "@/lib/waitlist";
 import { WaitlistForm } from "./WaitlistForm";
 
-const remote: WaitlistMode = { kind: "remote", endpoint: "https://api.example.com/waitlist" };
+const remote: WaitlistMode = {
+  kind: "remote",
+  endpoint: "https://api.example.com/waitlist",
+  turnstileSiteKey: "site-key",
+};
 const INVITE = "https://fakka.app/en/?ref=abc123";
 
 function renderForm({ locale = "en", mode = remote }: { locale?: "en" | "ar"; mode?: WaitlistMode } = {}) {
@@ -25,6 +29,25 @@ function stubFetch(impl: () => Promise<Response>) {
   return fetch;
 }
 
+// Stands in for Cloudflare's script: hands out tokens in order.
+function stubTurnstile({ autoSolve = true } = {}) {
+  let issued = 0;
+  let callback: ((token: string) => void) | undefined;
+  const api = {
+    render: vi.fn((_el: HTMLElement, options: { callback?: (token: string) => void }) => {
+      callback = options.callback;
+      if (autoSolve) callback?.(`token-${++issued}`);
+      return "widget-1";
+    }),
+    reset: vi.fn(() => {
+      if (autoSolve) callback?.(`token-${++issued}`);
+    }),
+    remove: vi.fn(),
+  };
+  vi.stubGlobal("turnstile", api);
+  return api;
+}
+
 const joined = () =>
   Promise.resolve(new Response(JSON.stringify({ position: 1234, inviteUrl: INVITE }), { status: 200 }));
 
@@ -37,6 +60,7 @@ async function fillAndSubmit(user: UserEvent, name = "Mona", email = "mona@examp
 beforeEach(() => {
   window.history.replaceState({}, "", "/en/");
   window.sessionStorage.clear();
+  stubTurnstile();
 });
 
 afterEach(() => {
@@ -71,6 +95,7 @@ describe("WaitlistForm", () => {
       email: "mona@example.com",
       locale: "en",
       ref: "friend42",
+      turnstileToken: "token-1",
     });
   });
 
@@ -238,6 +263,63 @@ describe("WaitlistForm", () => {
 
     const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     expect(JSON.parse(init.body as string).ref).toBe("friend42");
+  });
+
+  it("renders the bot check in the page language", async () => {
+    const turnstile = stubTurnstile();
+    renderForm({ locale: "ar" });
+    await vi.waitFor(() => expect(turnstile.render).toHaveBeenCalled());
+    expect(turnstile.render.mock.calls[0][1]).toMatchObject({ sitekey: "site-key", language: "ar", action: "waitlist" });
+  });
+
+  it("waits for the bot check instead of sending without a token", async () => {
+    stubTurnstile({ autoSolve: false });
+    const fetch = stubFetch(joined);
+    const user = userEvent.setup();
+    renderForm();
+
+    await fillAndSubmit(user);
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "One moment, we’re checking you’re not a bot. Try again in a few seconds.",
+    );
+  });
+
+  it("gets a fresh token and explains when the bot check fails on the server", async () => {
+    const turnstile = stubTurnstile();
+    const fetch = stubFetch(() => Promise.resolve(new Response("{}", { status: 403 })));
+    const user = userEvent.setup();
+    renderForm();
+
+    await fillAndSubmit(user);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("checking you’re not a bot");
+    expect(turnstile.reset).toHaveBeenCalledTimes(1);
+
+    fetch.mockImplementation(joined);
+    await user.click(screen.getByRole("button", { name: "Join" }));
+    await screen.findByRole("status");
+    const [, init] = fetch.mock.calls[1] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string).turnstileToken).toBe("token-2");
+  });
+
+  it("asks to wait after too many tries", async () => {
+    stubFetch(() => Promise.resolve(new Response("{}", { status: 429 })));
+    const user = userEvent.setup();
+    renderForm({ locale: "ar" });
+
+    await user.type(screen.getByLabelText("اسمك"), "منى");
+    await user.type(screen.getByLabelText("إيميلك"), "mona@example.com");
+    await user.click(screen.getByRole("button", { name: "سجّلني" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("محاولات كتير. استنّى دقيقة وجرّب تاني.");
+  });
+
+  it("does not load the bot check in stub mode", () => {
+    const turnstile = stubTurnstile();
+    renderForm({ mode: { kind: "stub" } });
+    expect(turnstile.render).not.toHaveBeenCalled();
   });
 
   it("renders disabled until hydrated, so an early submit cannot put the email in the URL", () => {

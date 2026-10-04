@@ -20,7 +20,9 @@
     "errors": {
       "nameMissing": "Please enter your name.",
       "emailMissing": "Please enter your email.",
-      "emailInvalid": "Please enter a valid email."
+      "emailInvalid": "Please enter a valid email.",
+      "verify": "One moment, we’re checking you’re not a bot. Try again in a few seconds.",
+      "tooMany": "Too many tries. Wait a minute, then try again."
     },
     "success": {
       "position": "You’re <num>#{position}</num>",

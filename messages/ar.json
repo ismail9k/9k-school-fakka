@@ -20,7 +20,9 @@
     "errors": {
       "nameMissing": "اكتب اسمك.",
       "emailMissing": "اكتب إيميلك.",
-      "emailInvalid": "الإيميل ده مش مظبوط."
+      "emailInvalid": "الإيميل ده مش مظبوط.",
+      "verify": "ثانية واحدة، بنتأكد إنك مش روبوت. جرّب تاني كمان شوية.",
+      "tooMany": "محاولات كتير. استنّى دقيقة وجرّب تاني."
     },
     "success": {
       "position": "إنت رقم <num>{position}</num> في الدور",
