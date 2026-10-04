@@ -10,18 +10,21 @@ type Props = {
   siteKey: string;
   locale: Locale;
   onToken(token: string | null): void;
+  onError(): void;
   ref?: Ref<TurnstileHandle>;
 };
 
 // Cloudflare's bot check. Usually invisible; it only shows a box when it
 // needs the visitor to click.
-export function TurnstileWidget({ siteKey, locale, onToken, ref }: Props) {
+export function TurnstileWidget({ siteKey, locale, onToken, onError, ref }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
   const onTokenRef = useRef(onToken);
+  const onErrorRef = useRef(onError);
 
   useEffect(() => {
     onTokenRef.current = onToken;
+    onErrorRef.current = onError;
   });
 
   useImperativeHandle(
@@ -51,10 +54,17 @@ export function TurnstileWidget({ siteKey, locale, onToken, ref }: Props) {
             "response-field": false,
             callback: (token) => onTokenRef.current(token),
             "expired-callback": () => onTokenRef.current(null),
-            "error-callback": () => onTokenRef.current(null),
+            "error-callback": () => {
+              onTokenRef.current(null);
+              onErrorRef.current();
+            },
           }) ?? null;
       })
-      .catch(() => onTokenRef.current(null));
+      .catch(() => {
+        if (cancelled) return;
+        onTokenRef.current(null);
+        onErrorRef.current();
+      });
 
     return () => {
       cancelled = true;

@@ -21,7 +21,7 @@ import {
 import { formatNumber } from "@/lib/format";
 import { TurnstileWidget, type TurnstileHandle } from "./TurnstileWidget";
 
-type ErrorReason = "failed" | "rate_limited" | "verification";
+type ErrorReason = "failed" | "rate_limited" | "verification" | "verification_blocked" | "verification_rejected";
 
 type Status =
   | { kind: "idle" }
@@ -39,6 +39,9 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
   // State updates are async, so guard against a second submit in the same tick.
   const inFlight = useRef(false);
   const [token, setToken] = useState<string | null>(null);
+  // The bot check could not load or render (often an ad blocker).
+  const [checkFailed, setCheckFailed] = useState(false);
+  const [checkAttempt, setCheckAttempt] = useState(0);
   const turnstile = useRef<TurnstileHandle>(null);
   // Server HTML renders disabled; a submit before hydration would do a native
   // GET and put the name and email in the URL.
@@ -50,6 +53,11 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
 
   if (status.kind === "success") {
     return <Success result={status.result} locale={locale} />;
+  }
+
+  function handleToken(next: string | null) {
+    setToken(next);
+    if (next) setStatus((current) => (current.kind === "error" && current.reason === "verification" ? { kind: "idle" } : current));
   }
 
   const unavailable = mode.kind === "unavailable";
@@ -81,7 +89,14 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
     if (data.get("website")) return;
 
     if (mode.kind === "remote" && !token) {
-      setStatus({ kind: "error", reason: "verification" });
+      if (checkFailed) {
+        // Remount the widget to try loading the check again.
+        setCheckFailed(false);
+        setCheckAttempt((n) => n + 1);
+        setStatus({ kind: "error", reason: "verification_blocked" });
+      } else {
+        setStatus({ kind: "error", reason: "verification" });
+      }
       return;
     }
 
@@ -100,7 +115,9 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
       );
       setStatus({ kind: "success", result });
     } catch (error) {
-      setStatus({ kind: "error", reason: error instanceof WaitlistError ? error.reason : "failed" });
+      const reason = error instanceof WaitlistError ? error.reason : "failed";
+      // Unlike "verification" (still waiting), this notice stays when the fresh token arrives.
+      setStatus({ kind: "error", reason: reason === "verification" ? "verification_rejected" : reason });
       // The token was spent on this attempt.
       if (mode.kind === "remote") turnstile.current?.reset();
     } finally {
@@ -151,7 +168,14 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
       </fieldset>
 
       {mode.kind === "remote" && (
-        <TurnstileWidget ref={turnstile} siteKey={mode.turnstileSiteKey} locale={locale} onToken={setToken} />
+        <TurnstileWidget
+          key={checkAttempt}
+          ref={turnstile}
+          siteKey={mode.turnstileSiteKey}
+          locale={locale}
+          onToken={handleToken}
+          onError={() => setCheckFailed(true)}
+        />
       )}
 
       {/* Honeypot: invisible to people and screen readers, tempting to bots. */}
@@ -164,9 +188,11 @@ export function WaitlistForm({ mode = getWaitlistMode() }: { mode?: WaitlistMode
 
       {status.kind === "error" && (
         <p role="alert" className="mt-4 text-sm text-gold">
-          {status.reason === "verification"
+          {status.reason === "verification" || status.reason === "verification_rejected"
             ? t("errors.verify")
-            : status.reason === "rate_limited"
+            : status.reason === "verification_blocked"
+              ? t("errors.verifyBlocked")
+              : status.reason === "rate_limited"
               ? t("errors.tooMany")
               : t("error")}
         </p>
