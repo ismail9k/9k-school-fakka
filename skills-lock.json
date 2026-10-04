@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "skills": {
+    "answer-pr-reviews": {
+      "source": "ismail9k/skills",
+      "sourceType": "github",
+      "skillPath": "skills/answer-pr-reviews/SKILL.md",
+      "computedHash": "c06bd413d299a000510a8f837c4cdb927f14cddeb2b4f8b37fc8f27e0b9af1ea"
+    },
+    "anti-koshary": {
+      "source": "ismail9k/skills",
+      "sourceType": "github",
+      "skillPath": "skills/anti-koshary/SKILL.md",
+      "computedHash": "5eeabb1cab2459d9f63469a348f4ef4ec7828075cbcc2fbfddc34dcb840cdc05"
+    },
+    "brainstorm-to-issue": {
+      "source": "ismail9k/skills",
+      "sourceType": "github",
+      "skillPath": "skills/brainstorm-to-issue/SKILL.md",
+      "computedHash": "26811b2959f4d388153e3f7a060109ff63fe225372a22564c419c81c903de955"
+    },
+    "fetch-issues": {
+      "source": "ismail9k/skills",
+      "sourceType": "github",
+      "skillPath": "skills/fetch-issues/SKILL.md",
+      "computedHash": "eae5eea545fc763534738460ede17f8494c4414ce42795badc1b21924dbc266e"
+    },
+    "implement-issues": {
+      "source": "ismail9k/skills",
+      "sourceType": "github",
+      "skillPath": "skills/implement-issues/SKILL.md",
+      "computedHash": "a0f06e785df6131f25a412f563feec83bb32ad39c8dec312e4122989db7c999e"
+    },
+    "review-prs": {
+      "source": "ismail9k/skills",
+      "sourceType": "github",
+      "skillPath": "skills/review-prs/SKILL.md",
+      "computedHash": "cac0ed1bce8fe107e622eab11214948e65a393e0966316b978b904e3bd5ab171"
+    },
+    "setup-agent-md": {
+      "source": "ismail9k/skills",
+      "sourceType": "github",
+      "skillPath": "skills/setup-agent-md/SKILL.md",
+      "computedHash": "c63bf0c77bdc075f0a892943ede623e440ac626a28fe0cc888eb394ae1d8bb93"
+    },
+    "setup-issue-tracker": {
+      "source": "ismail9k/skills",
+      "sourceType": "github",
+      "skillPath": "skills/setup-issue-tracker/SKILL.md",
+      "computedHash": "2ee280281a1a626f661f288bf17f816bb8939c85cf824c8b44eede7f1555a6ec"
+    },
+    "superpowers-issue-bridge": {
+      "source": "ismail9k/skills",
+      "sourceType": "github",
+      "skillPath": "skills/superpowers-issue-bridge/SKILL.md",
+      "computedHash": "beb5647bb6480ceecf764316ea41380aa3caf15eb4c71792ccabf46954005834"
+    }
+  }
+}
