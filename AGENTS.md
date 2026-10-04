@@ -22,25 +22,40 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
 
 - Dev server: `pnpm dev`
 - Build: `pnpm build` (static export to `./out`)
-- Preview on the Workers runtime: `pnpm preview` (build + `wrangler dev`)
-- Deploy: `pnpm deploy` (build + `wrangler deploy`)
+- Preview on the Workers runtime: `pnpm preview` (build + local D1 migrations + `wrangler dev`).
+  Copy `.dev.vars.example` to `.dev.vars` first.
+- Deploy: `pnpm deploy` (build + remote D1 migrations + `wrangler deploy`)
+- D1 migrations alone: `pnpm db:migrate:local` / `pnpm db:migrate:remote` (SQL in `migrations/`)
 - Lint: `pnpm lint`
 - Test: `pnpm test` (Vitest + Testing Library, jsdom). Watch mode: `pnpm test:watch`.
-  Tests sit next to the code they cover (`*.test.ts(x)`).
+  Tests sit next to the code they cover (`*.test.ts(x)`). Worker tests (`worker/*.test.ts`)
+  run in the node environment against in-memory SQLite (`worker/test/sqlite-d1.ts`).
 
 ### Architecture
 
-- **Fully static.** `next.config.ts` sets `output: "export"`, `trailingSlash: true`,
-  and unoptimized images; Cloudflare Workers serves `./out` as static assets
-  (`wrangler.jsonc`, no Worker script). There is no server at runtime: no
-  middleware, route handlers, server actions, or `next/image` optimization.
-  Anything dynamic (e.g. the waitlist) needs a separate backend.
-- **Waitlist endpoint.** The form posts `{ name, email, locale, ref }` to
-  `NEXT_PUBLIC_WAITLIST_ENDPOINT` and expects `200 { position, inviteUrl }`
-  (`src/lib/waitlist.ts`). The value is inlined at build time. Without it,
-  `pnpm dev` uses a local stub and production builds show the form as disabled
-  ("Sign-ups open very soon"). Invite links carry `?ref=`; the root `/` redirect
-  keeps the query string.
+- **Static site plus one API Worker.** `next.config.ts` sets `output: "export"`,
+  `trailingSlash: true`, and unoptimized images, so Next has no server at
+  runtime: no middleware, route handlers, server actions, or `next/image`
+  optimization. Cloudflare serves `./out` as static assets; `wrangler.jsonc`
+  also runs `worker/index.ts` for `/api/*` only (`assets.run_worker_first`).
+- **Waitlist backend (`worker/`).** `POST /api/waitlist` takes
+  `{ name, email, locale, ref, turnstileToken }` and returns
+  `200 { position, inviteUrl }` (400/403/429/500 with `{ error }`). Order:
+  per-IP rate limit (`WAITLIST_LIMITER`), validation, Turnstile siteverify,
+  then D1 (`DB`, table `signups`). Same email (normalized by
+  `worker/email-key.ts`) returns the existing place. Score = join order −
+  `REFERRAL_JUMP` × referrals, earlier join wins ties. The Resend confirmation
+  email is sent in `ctx.waitUntil` and never fails a signup; its copy is the
+  `Email` namespace in `messages/*.json`. Vars live in `wrangler.jsonc`;
+  secrets are `TURNSTILE_SECRET_KEY` and `RESEND_API_KEY`. Store only what
+  the brief's Privacy section allows. Binding types are hand-written in
+  `worker/env.ts` (the root tsconfig uses the DOM lib).
+- **Waitlist form.** Posts to `NEXT_PUBLIC_WAITLIST_ENDPOINT` (`/api/waitlist`)
+  with a token from the Turnstile widget (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`);
+  both are inlined at build time (`src/lib/waitlist.ts`). Without the endpoint,
+  `pnpm dev` uses a local stub; production builds missing either value show
+  the form as disabled ("Sign-ups open very soon"). Invite links carry
+  `?ref=`; the root `/` redirect keeps the query string.
 - **i18n via next-intl without middleware.** Locales live in `src/i18n/routing.ts`
   (`en` default, `ar`; `rtlLocales` drives `dir`). Messages are `messages/{locale}.json`,
   loaded by `src/i18n/request.ts`. Every page under `src/app/[locale]/` must call
