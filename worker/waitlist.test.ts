@@ -251,6 +251,54 @@ describe("handleWaitlist", () => {
     expect(res).toEqual({ error: "server_error" });
   });
 
+  describe("when reading the position fails after the signup is saved", () => {
+    // Fails the next `times` position queries, then lets them through.
+    function failPositionReads(times: number) {
+      const db = env.DB;
+      let left = times;
+      env.DB = {
+        prepare(sql) {
+          if (sql.includes("ROW_NUMBER") && left > 0) {
+            left--;
+            throw new Error("D1 hiccup");
+          }
+          return db.prepare(sql);
+        },
+        batch: (statements) => db.batch(statements),
+      };
+    }
+
+    it("retries once and still answers and emails", async () => {
+      failPositionReads(1);
+      const { status, body: res } = await call(post());
+      expect(status).toBe(200);
+      expect(res.position).toBe(1);
+      expect(resendCalls()).toHaveLength(1);
+    });
+
+    it("still sends the email when the request has to fail", async () => {
+      failPositionReads(2);
+      const { status, body: res } = await call(post());
+      expect(status).toBe(500);
+      expect(res).toEqual({ error: "server_error" });
+      expect(resendCalls()).toHaveLength(1);
+      const sent = JSON.parse(resendCalls()[0][1]!.body as string);
+      expect(sent.subject).toContain("#1");
+      // The retry finds the saved signup and gets the same place without a second email.
+      const again = await call(post());
+      expect(again.status).toBe(200);
+      expect(resendCalls()).toHaveLength(1);
+    });
+
+    it("logs and gives up on the email when the position never comes back", async () => {
+      failPositionReads(Infinity);
+      const { status } = await call(post());
+      expect(status).toBe(500);
+      expect(resendCalls()).toHaveLength(0);
+      expect(console.error).toHaveBeenCalled();
+    });
+  });
+
   it("uses the configured referral jump", async () => {
     env.REFERRAL_JUMP = "0";
     await call(post({ ...body, email: "a@example.com" }));

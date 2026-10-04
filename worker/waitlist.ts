@@ -36,6 +36,15 @@ async function readBody(request: Request, limit: number): Promise<string | null>
   return new TextDecoder().decode(bytes);
 }
 
+async function getPositionWithRetry(db: Env["DB"], id: number, referralJump: number): Promise<number> {
+  try {
+    return await getPosition(db, id, referralJump);
+  } catch (error) {
+    console.error("Position read failed; retrying once", error);
+    return getPosition(db, id, referralJump);
+  }
+}
+
 const invalid = () => json({ error: "invalid_request" }, 400);
 const serverError = () => json({ error: "server_error" }, 500);
 
@@ -78,17 +87,31 @@ export async function handleWaitlist(request: Request, env: Env, ctx: ExecutionC
       ref: input.ref,
       createdAt: new Date().toISOString(),
     });
-    const position = await getPosition(env.DB, signup.id, config.referralJump);
     const inviteUrl = `${config.siteUrl}/${signup.locale}/?ref=${signup.inviteCode}`;
-
-    if (created) {
-      ctx.waitUntil(
-        sendConfirmationEmail(
-          { to: input.email, locale: signup.locale, position, inviteUrl },
-          { apiKey: env.RESEND_API_KEY, from: config.emailFrom, idempotencyKey: `signup-${signup.id}` },
-        ),
+    const readPosition = () => getPositionWithRetry(env.DB, signup.id, config.referralJump);
+    const sendEmail = (position: number) =>
+      sendConfirmationEmail(
+        { to: input.email, locale: signup.locale, position, inviteUrl },
+        { apiKey: env.RESEND_API_KEY, from: config.emailFrom, idempotencyKey: `signup-${signup.id}` },
       );
+
+    let position: number;
+    try {
+      position = await readPosition();
+    } catch (error) {
+      // The signup is saved, so a retry returns created: false and would never
+      // email. Read the position again in the background and send it then.
+      if (created) {
+        ctx.waitUntil(
+          readPosition()
+            .then(sendEmail)
+            .catch((emailError: unknown) => console.error("Confirmation email skipped: no position", emailError)),
+        );
+      }
+      throw error;
     }
+
+    if (created) ctx.waitUntil(sendEmail(position));
 
     return json({ position, inviteUrl }, 200);
   } catch (error) {
