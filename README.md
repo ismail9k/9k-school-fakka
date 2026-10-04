@@ -56,8 +56,10 @@ limit, and emails each new signup through Resend.
 3. Verify `fakka.com` in Resend, create an API key, then
    `pnpm exec wrangler secret put RESEND_API_KEY`. The sender is `EMAIL_FROM`
    in `wrangler.jsonc`.
-4. Build and deploy with
-   `NEXT_PUBLIC_WAITLIST_ENDPOINT=/api/waitlist NEXT_PUBLIC_TURNSTILE_SITE_KEY=<site key> pnpm deploy`.
-5. Attach `fakka.com` to the `fakka` Worker as a custom domain.
+4. Add `NEXT_PUBLIC_TURNSTILE_SITE_KEY=<public site key>` to `.env.production`
+   (it already has `NEXT_PUBLIC_WAITLIST_ENDPOINT`; both values are public).
+5. Build and deploy with `pnpm run deploy`. It stops early if either public
+   variable is missing.
+6. Attach `fakka.com` to the `fakka` Worker as a custom domain.
 
 Change how far each referral moves someone with the `REFERRAL_JUMP` var.

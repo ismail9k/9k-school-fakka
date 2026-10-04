@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "preview": "next build && wrangler d1 migrations apply fakka-waitlist --local && wrangler dev",
-    "deploy": "next build && wrangler d1 migrations apply fakka-waitlist --remote && wrangler deploy",
+    "deploy": "node scripts/check-release-env.mjs && next build && wrangler d1 migrations apply fakka-waitlist --remote && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply fakka-waitlist --local",
     "db:migrate:remote": "wrangler d1 migrations apply fakka-waitlist --remote",
     "lint": "eslint",
@@ -37,5 +37,6 @@
     "vitest": "^5.0.3",
     "wrangler": "^4.146.0"
   },
+  "engines": { "node": ">=22.5" },
   "packageManager": "pnpm@11.10.0"
 }

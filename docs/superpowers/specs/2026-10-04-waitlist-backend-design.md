@@ -88,9 +88,9 @@ migrations directory).
 Order of checks: method → rate limit (keyed by `CF-Connecting-IP`) → body size
 and validation → Turnstile → storage. Nothing is written before Turnstile passes.
 
-Validation: `name` trimmed, control characters removed, 1–80 characters;
-`email` trimmed, ≤ 254 characters, `local@domain.tld` shape; `locale` is `en`
-or `ar`; `ref` optional — anything that isn't a well-formed invite code is
+Validation: `name` trimmed, control and invisible format characters (`\p{Cc}`, `\p{Cf}`, e.g. bidi overrides) removed, 1–80 characters;
+`email` trimmed, ≤ 254 characters, `local@domain.tld` shape without whitespace or `@<>()[]\,;:"`; `locale` is `en`
+or `ar`; `ref` optional, trimmed and lowercased — anything that isn't a well-formed invite code is
 treated as no ref (the signup still succeeds); `turnstileToken` a non-empty
 string ≤ 2048 characters.
 
@@ -154,7 +154,9 @@ page and root redirect already keep `?ref=`.
 `Idempotency-Key: signup-<id>`, `from` = `EMAIL_FROM`, HTML and plain-text
 bodies, `dir="rtl"` for Arabic. Copy lives in `messages/{en,ar}.json` under
 `Email`, written naturally for each language, with the position formatted by
-`src/lib/format.ts` (Arabic-Indic digits for Arabic). The name is HTML-escaped.
+`src/lib/format.ts` (Arabic-Indic digits for Arabic). The email does not
+include the visitor's name (it is sent from fakka.com, so free text from a
+visitor stays out of it); the invite URL is HTML-escaped.
 A send failure is logged and never fails the signup; the email carries the
 position at join time. Without `RESEND_API_KEY` the email is skipped with a
 log line (local development).
@@ -164,7 +166,7 @@ with `secret`, `response`, and `remoteip`, 10-second timeout. Anything but
 `success: true` → 403. A network error or timeout also → 403 (fail closed).
 Missing `TURNSTILE_SECRET_KEY` → 500 and a log line.
 
-**Rate limit.** Workers Rate Limiting binding `WAITLIST_LIMITER`, 5 requests
+**Rate limit.** Workers Rate Limiting binding `WAITLIST_LIMITER`, 20 requests
 per 60 seconds per IP. Requests without `CF-Connecting-IP` share one key.
 
 ## Configuration
@@ -181,8 +183,10 @@ Front-end build config: `NEXT_PUBLIC_WAITLIST_ENDPOINT=/api/waitlist` and the
 new `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
 
 Scripts: `pnpm preview` applies local D1 migrations before `wrangler dev`;
-`pnpm deploy` applies remote migrations before `wrangler deploy`, so schema
-always lands before code; `pnpm db:migrate:local` / `db:migrate:remote` run them
+`pnpm run deploy` first runs `scripts/check-release-env.mjs` (both public build
+vars must be set, from the environment or the committed `.env.production`),
+then applies remote migrations before `wrangler deploy`, so schema always lands
+before code; `pnpm db:migrate:local` / `db:migrate:remote` run them
 alone.
 
 ## Front-end changes
@@ -246,3 +250,19 @@ detail with `console.error`; no stack or upstream body reaches the client.
   token, the new error notices, widget reset, and the mode rule.
 - Smoke: `pnpm build`, local migrations, `wrangler dev`, curl the endpoint with
   Turnstile's test secret.
+
+## Changes after final review
+
+- Rate limit is 20 requests per 60 seconds per IP (was 5).
+- The confirmation email no longer contains the visitor's name; `Email.greeting`
+  is "Hi," / "أهلًا،".
+- Names also have `\p{Cf}` characters (bidi overrides, zero-width) stripped.
+- The email pattern excludes whitespace and `@<>()[]\,;:"` in each part.
+- `ref` is trimmed and lowercased before matching the invite-code pattern.
+- The Resend request times out after 10 seconds.
+- `.env.production` (committed, public values only) holds
+  `NEXT_PUBLIC_WAITLIST_ENDPOINT`; `scripts/check-release-env.mjs` blocks a
+  deploy missing either public var.
+- The deploy command is `pnpm run deploy` (`pnpm deploy` is pnpm's built-in).
+- The form shows a distinct notice when the bot check is blocked or fails to
+  load, and retries loading it on the next submit.

@@ -24,7 +24,9 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
 - Build: `pnpm build` (static export to `./out`)
 - Preview on the Workers runtime: `pnpm preview` (build + local D1 migrations + `wrangler dev`).
   Copy `.dev.vars.example` to `.dev.vars` first.
-- Deploy: `pnpm deploy` (build + remote D1 migrations + `wrangler deploy`)
+- Deploy: `pnpm run deploy` (release env check + build + remote D1 migrations + `wrangler deploy`).
+  The check needs `NEXT_PUBLIC_WAITLIST_ENDPOINT` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+  (environment or the committed `.env.production`).
 - D1 migrations alone: `pnpm db:migrate:local` / `pnpm db:migrate:remote` (SQL in `migrations/`)
 - Lint: `pnpm lint`
 - Test: `pnpm test` (Vitest + Testing Library, jsdom). Watch mode: `pnpm test:watch`.
@@ -40,7 +42,7 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
   also runs `worker/index.ts` for `/api/*` only (`assets.run_worker_first`).
 - **Waitlist backend (`worker/`).** `POST /api/waitlist` takes
   `{ name, email, locale, ref, turnstileToken }` and returns
-  `200 { position, inviteUrl }` (400/403/429/500 with `{ error }`). Order:
+  `200 { position, inviteUrl }` (400/403/404/405/429/500 with `{ error }`; 404 is an unknown `/api` path, 405 a non-POST). Order:
   per-IP rate limit (`WAITLIST_LIMITER`), validation, Turnstile siteverify,
   then D1 (`DB`, table `signups`). Same email (normalized by
   `worker/email-key.ts`) returns the existing place. Score = join order −
@@ -79,6 +81,7 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
 
 - Next.js here is 16.x with breaking changes from older versions; see the managed
   block below and check the bundled docs before using an API.
+- `pnpm deploy` is pnpm's built-in workspace command; use `pnpm run deploy`.
 - `next dev` re-inserts the managed block below if it is missing. Keep it.
 
 <!-- BEGIN:nextjs-agent-rules -->
