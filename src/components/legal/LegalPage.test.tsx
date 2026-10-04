@@ -40,9 +40,14 @@ describe("PrivacyContent", () => {
     expect(container.querySelectorAll("mark[data-placeholder]").length).toBeGreaterThan(0);
   });
 
-  it("keeps the notice when only some details are filled", () => {
-    withIntl(<PrivacyContent details={{ ...filled, governingLaw: null }} />);
+  it("keeps the notice while a detail it shows is still missing", () => {
+    withIntl(<PrivacyContent details={{ ...filled, contactEmail: null }} />);
     expect(screen.getByRole("note")).toBeInTheDocument();
+  });
+
+  it("drops the notice when only governing law, which it never shows, is missing", () => {
+    withIntl(<PrivacyContent details={{ ...filled, governingLaw: null }} />);
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });
 
   it("drops the notice and placeholders once details are filled", () => {
@@ -74,6 +79,16 @@ describe("TermsContent", () => {
     }
     expect(screen.getByRole("link", { name: "Read our privacy policy" })).toHaveAttribute("href", "/en/privacy/");
     expect(screen.getByText("[Governing law — to be confirmed]")).toBeInTheDocument();
+  });
+
+  it("keeps the notice while governing law is missing", () => {
+    withIntl(<TermsContent details={{ ...filled, governingLaw: null }} />);
+    expect(screen.getByRole("note")).toBeInTheDocument();
+  });
+
+  it("drops the notice once every detail is filled", () => {
+    withIntl(<TermsContent details={filled} />);
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });
 
   it("switches language to the Arabic terms page", () => {

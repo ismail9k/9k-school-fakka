@@ -4,7 +4,7 @@ import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
 import type { Locale } from "@/i18n/routing";
 import { formatDate } from "@/lib/format";
-import { hasMissingDetails, LEGAL_LAST_UPDATED, type LegalDetails } from "@/lib/legal";
+import { type DetailKind, hasMissingDetails, LEGAL_LAST_UPDATED, type LegalDetails } from "@/lib/legal";
 
 type Section = { title: string; paragraphs?: string[]; items?: string[] };
 
@@ -13,12 +13,15 @@ export function LegalPage({
   path,
   sections,
   details,
+  detailKinds,
   extras = {},
 }: {
   namespace: "Privacy" | "Terms";
   path: string;
   sections: readonly string[];
   details: LegalDetails;
+  /** The details this page shows; only these decide the draft notice. */
+  detailKinds: readonly DetailKind[];
   extras?: Partial<Record<string, ReactNode>>;
 }) {
   const t = useTranslations(namespace);
@@ -34,7 +37,7 @@ export function LegalPage({
           <p className="mt-3 text-sm text-ink-soft">
             {tl("updated", { date: formatDate(LEGAL_LAST_UPDATED, locale) })}
           </p>
-          {hasMissingDetails(details) && (
+          {hasMissingDetails(details, detailKinds) && (
             <p role="note" className="mt-6 rounded-lg border border-gold bg-gold/15 p-4 text-sm">
               {tl("draftNotice")}
             </p>

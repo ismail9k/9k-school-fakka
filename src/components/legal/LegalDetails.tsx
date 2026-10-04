@@ -1,9 +1,9 @@
 import { useLocale, useTranslations } from "next-intl";
 import { Fragment } from "react";
 import type { Locale } from "@/i18n/routing";
-import type { LegalDetails } from "@/lib/legal";
+import type { DetailKind, LegalDetails } from "@/lib/legal";
 
-export type DetailKind = "operator" | "contact" | "law";
+export type { DetailKind };
 
 function valueFor(kind: DetailKind, details: LegalDetails, locale: Locale): string | null {
   if (kind === "operator") return details.operatorName?.[locale] ?? null;

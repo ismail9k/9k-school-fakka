@@ -11,6 +11,7 @@ export function PrivacyContent({ details }: { details: LegalDetails }) {
       path="privacy/"
       sections={SECTIONS}
       details={details}
+      detailKinds={["operator", "contact"]}
       extras={{
         who: <DetailsList kinds={["operator", "contact"]} details={details} />,
         choices: <DetailsList kinds={["contact"]} details={details} />,

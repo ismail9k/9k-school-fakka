@@ -15,6 +15,7 @@ export function TermsContent({ details }: { details: LegalDetails }) {
       path="terms/"
       sections={SECTIONS}
       details={details}
+      detailKinds={["operator", "contact", "law"]}
       extras={{
         what: <DetailsList kinds={["operator"]} details={details} />,
         data: (

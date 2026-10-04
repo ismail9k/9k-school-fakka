@@ -19,4 +19,11 @@ describe("hasMissingDetails", () => {
   it("is true when only one detail is still missing", () => {
     expect(hasMissingDetails({ ...filled, governingLaw: null })).toBe(true);
   });
+
+  it("only checks the details a page shows", () => {
+    const lawMissing = { ...filled, governingLaw: null };
+    expect(hasMissingDetails(lawMissing, ["operator", "contact"])).toBe(false);
+    expect(hasMissingDetails(lawMissing, ["law"])).toBe(true);
+    expect(hasMissingDetails({ ...filled, contactEmail: null }, ["operator", "contact"])).toBe(true);
+  });
 });
