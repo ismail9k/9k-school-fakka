@@ -3,7 +3,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it } from "vitest";
 import ar from "../../../messages/ar.json";
 import en from "../../../messages/en.json";
-import type { LegalDetails } from "@/lib/legal";
+import { formatDate } from "@/lib/format";
+import { LEGAL_LAST_UPDATED, type LegalDetails } from "@/lib/legal";
 import { LegalPage } from "./LegalPage";
 import { PrivacyContent } from "./PrivacyContent";
 import { TermsContent } from "./TermsContent";
@@ -27,7 +28,9 @@ describe("PrivacyContent", () => {
   it("renders the title, date and every section in English", () => {
     withIntl(<PrivacyContent details={empty} />);
     expect(screen.getByRole("heading", { level: 1, name: "Privacy" })).toBeInTheDocument();
-    expect(screen.getByText("Last updated: October 4, 2026")).toBeInTheDocument();
+    // The date format itself is pinned in format.test.ts; here only the wiring matters,
+    // so bumping LEGAL_LAST_UPDATED does not break these tests.
+    expect(screen.getByText(`Last updated: ${formatDate(LEGAL_LAST_UPDATED, "en")}`)).toBeInTheDocument();
     for (const section of Object.values(en.Privacy.sections)) {
       expect(screen.getByRole("heading", { level: 2, name: section.title })).toBeInTheDocument();
     }
@@ -65,7 +68,7 @@ describe("PrivacyContent", () => {
   it("renders in Arabic and switches language to the same page", () => {
     withIntl(<PrivacyContent details={empty} />, "ar");
     expect(screen.getByRole("heading", { level: 1, name: "الخصوصية" })).toBeInTheDocument();
-    expect(screen.getByText("آخر تحديث: ٤ أكتوبر ٢٠٢٦")).toBeInTheDocument();
+    expect(screen.getByText(`آخر تحديث: ${formatDate(LEGAL_LAST_UPDATED, "ar")}`)).toBeInTheDocument();
     const header = screen.getByRole("banner");
     expect(within(header).getByRole("link", { name: ar.LocaleSwitch.label })).toHaveAttribute("href", "/en/privacy/");
   });
