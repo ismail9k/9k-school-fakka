@@ -30,6 +30,16 @@
       "copied": "Copied"
     }
   },
+  "Email": {
+    "subject": "You’re #{position} on the Fakka waitlist",
+    "greeting": "Hi {name},",
+    "position": "You’re #{position} in line for Fakka.",
+    "invite": "Want to move up? Share your invite link. Each friend who joins with it moves you up the queue.",
+    "linkLabel": "Your invite link:",
+    "launch": "We’ll email you when Fakka is ready. There’s no date yet, but you’ll hear it from us first.",
+    "signoff": "The Fakka team",
+    "footer": "You’re getting this because you joined the Fakka waitlist on fakka.com. We only email you about Fakka’s launch, and we never share your details."
+  },
   "Header": {
     "home": "Fakka home"
   },
