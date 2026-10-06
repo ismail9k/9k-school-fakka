@@ -47,20 +47,24 @@ limit, and emails each new signup through Resend.
 2. Build with the endpoint and Turnstile's always-pass test site key:
    `NEXT_PUBLIC_WAITLIST_ENDPOINT=/api/waitlist NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA pnpm preview`
 
-### Production setup (once)
+### Production setup
 
-1. The D1 databases already exist (`fakka-waitlist` for production,
-   `fakka-waitlist-preview` for previews); their IDs are in `wrangler.jsonc`.
-2. Create a Turnstile widget for `fakka.com`; then
-   `pnpm exec wrangler secret put TURNSTILE_SECRET_KEY`.
-3. Verify `fakka.com` in Resend, create an API key, then
-   `pnpm exec wrangler secret put RESEND_API_KEY`. The sender is `EMAIL_FROM`
-   in `wrangler.jsonc`.
-4. Add `NEXT_PUBLIC_TURNSTILE_SITE_KEY=<public site key>` to `.env.production`
-   (it already has `NEXT_PUBLIC_WAITLIST_ENDPOINT`; both values are public).
-5. Build and deploy with `pnpm run deploy`. It stops early if either public
-   variable is missing.
-6. Attach `fakka.com` to the `fakka` Worker as a custom domain.
+Production deploys from CI on every push to `master` (see CI/CD below).
+`pnpm run deploy` does the same from your machine.
+
+- The D1 databases already exist (`fakka-waitlist` for production,
+  `fakka-waitlist-preview` for previews); their IDs are in `wrangler.jsonc`.
+- Turnstile uses Cloudflare's always-pass **test keys** everywhere, because
+  this is a demo project: the site key is in `.env.production` and the secret
+  is a var in `wrangler.jsonc`. For real bot protection, create a widget, put
+  its site key in `.env.production`, delete the `TURNSTILE_SECRET_KEY` var and
+  run `pnpm exec wrangler secret put TURNSTILE_SECRET_KEY`.
+- No email is sent until a Resend key exists: verify the sender domain in
+  Resend, then `pnpm exec wrangler secret put RESEND_API_KEY`. The sender is
+  `EMAIL_FROM` in `wrangler.jsonc`.
+- The Worker is served at `fakka.<subdomain>.workers.dev`. To use `fakka.com`,
+  attach it to the `fakka` Worker as a custom domain (`SITE_URL`, used in
+  invite links, already points there).
 
 Change how far each referral moves someone with the `REFERRAL_JUMP` var.
 
@@ -73,12 +77,19 @@ GitHub Actions (`.github/workflows/ci-cd.yml`):
 | Pull request | the checks, then a Cloudflare Workers Preview named `pr-<number>`; its URL is commented on the PR |
 | Pull request closed | its preview is deleted |
 | Push to `develop` | the checks, then a Cloudflare Workers Preview named `develop` |
-| Push to `master` | the checks, then the production deploy (`pnpm run deploy` steps) |
+| Push to `master` | the checks, then the production deploy (`pnpm run deploy` steps, minus migrations) |
 
-Previews share one D1 database (`fakka-waitlist-preview`), use Turnstile's
-test keys, and send no emails, so they never touch production sign-ups.
+Previews share one D1 database (`fakka-waitlist-preview`) and send no emails,
+so they never touch production sign-ups.
 Pull requests from forks get no secrets, so they run the checks only.
 
 One-time setup: create a Cloudflare API token from the "Edit Cloudflare
-Workers" template with D1 Edit added, then add it and your account ID as
+Workers" template. Add it and your account ID (`pnpm exec wrangler whoami`) as
 repository secrets named `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
+**D1 migrations are not run by CI**, because the token has no D1 access. When
+a change adds a file to `migrations/`, apply it yourself (logged in with
+`wrangler login`) before that change deploys:
+
+- preview database, before the PR or `develop` deploy: `pnpm db:migrate:preview`
+- production database, before merging into `master`: `pnpm db:migrate:remote`
