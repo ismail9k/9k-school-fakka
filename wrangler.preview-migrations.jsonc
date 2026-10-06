@@ -1,0 +1,14 @@
+// Used only to run D1 migrations against the preview database:
+//   pnpm db:migrate:preview
+// Must point at the same database as `previews.d1_databases` in wrangler.jsonc.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "d1_databases": [
+    {
+      "binding": "PREVIEW_DB",
+      "database_name": "fakka-waitlist-preview",
+      "database_id": "897cde5f-44ab-4cff-8f90-ca195a9e21bc",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

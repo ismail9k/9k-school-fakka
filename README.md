@@ -49,8 +49,8 @@ limit, and emails each new signup through Resend.
 
 ### Production setup (once)
 
-1. `pnpm exec wrangler d1 create fakka-waitlist` and add the printed
-   `database_id` to the `d1_databases` entry in `wrangler.jsonc`.
+1. The D1 databases already exist (`fakka-waitlist` for production,
+   `fakka-waitlist-preview` for previews); their IDs are in `wrangler.jsonc`.
 2. Create a Turnstile widget for `fakka.com`; then
    `pnpm exec wrangler secret put TURNSTILE_SECRET_KEY`.
 3. Verify `fakka.com` in Resend, create an API key, then
@@ -63,3 +63,22 @@ limit, and emails each new signup through Resend.
 6. Attach `fakka.com` to the `fakka` Worker as a custom domain.
 
 Change how far each referral moves someone with the `REFERRAL_JUMP` var.
+
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci-cd.yml`):
+
+| Event | What runs |
+| --- | --- |
+| Pull request | the checks, then a Cloudflare Workers Preview named `pr-<number>`; its URL is commented on the PR |
+| Pull request closed | its preview is deleted |
+| Push to `develop` | the checks, then a Cloudflare Workers Preview named `develop` |
+| Push to `master` | the checks, then the production deploy (`pnpm run deploy` steps) |
+
+Previews share one D1 database (`fakka-waitlist-preview`), use Turnstile's
+test keys, and send no emails, so they never touch production sign-ups.
+Pull requests from forks get no secrets, so they run the checks only.
+
+One-time setup: create a Cloudflare API token from the "Edit Cloudflare
+Workers" template with D1 Edit added, then add it and your account ID as
+repository secrets named `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
