@@ -27,8 +27,9 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
 - Deploy: `pnpm run deploy` (release env check + build + remote D1 migrations + `wrangler deploy`).
   The check needs `NEXT_PUBLIC_WAITLIST_ENDPOINT` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
   (environment or the committed `.env.production`).
-- D1 migrations alone: `pnpm db:migrate:local` / `pnpm db:migrate:remote` (SQL in `migrations/`)
+- D1 migrations alone: `pnpm db:migrate:local` / `pnpm db:migrate:remote` / `pnpm db:migrate:preview` (SQL in `migrations/`)
 - Lint: `pnpm lint`
+- Typecheck: `pnpm typecheck` (`next typegen` first, so route types exist on a clean checkout)
 - Test: `pnpm test` (Vitest + Testing Library, jsdom). Watch mode: `pnpm test:watch`.
   Tests sit next to the code they cover (`*.test.ts(x)`). Worker tests (`worker/*.test.ts`)
   run in the node environment against in-memory SQLite (`worker/test/sqlite-d1.ts`).
@@ -74,6 +75,19 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
   `LEGAL_LAST_UPDATED` when the copy changes.
 - Internal links use trailing-slash locale paths (`/en/`, `/ar/`).
 - Path alias `@/*` → `src/*`. Styling is Tailwind CSS v4 (`src/app/globals.css`).
+
+### CI/CD
+
+`.github/workflows/ci-cd.yml` runs lint, typecheck, test, and build on every
+pull request and on pushes to `develop` and `master`. After those pass, each
+pull request gets a Workers Preview `pr-<number>` (deleted when it closes), a
+push to `develop` updates the `develop` preview, and a push to `master` runs
+the production deploy steps. Previews use the `previews` block in
+`wrangler.jsonc`: one shared D1 database
+(`fakka-waitlist-preview`, migrated with `wrangler.preview-migrations.jsonc`),
+Turnstile test keys, and no Resend key. Previews do not inherit top-level
+bindings or vars, so a new binding or var goes in both places. Deploys need
+the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets.
 
 ### Conventions
 

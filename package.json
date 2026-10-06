@@ -9,7 +9,9 @@
     "deploy": "node scripts/check-release-env.mjs && next build && wrangler d1 migrations apply fakka-waitlist --remote && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply fakka-waitlist --local",
     "db:migrate:remote": "wrangler d1 migrations apply fakka-waitlist --remote",
+    "db:migrate:preview": "wrangler d1 migrations apply PREVIEW_DB --remote --config wrangler.preview-migrations.jsonc",
     "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
