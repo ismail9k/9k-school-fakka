@@ -26,7 +26,7 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
   Copy `.dev.vars.example` to `.dev.vars` first.
 - Deploy: `pnpm run deploy` (release env check + build + remote D1 migrations + `wrangler deploy`).
   The check needs `NEXT_PUBLIC_WAITLIST_ENDPOINT` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
-  (environment or the committed `.env.production`).
+  (environment or the committed `.env.production`). CI runs these steps on every push to `master`.
 - D1 migrations alone: `pnpm db:migrate:local` / `pnpm db:migrate:remote` / `pnpm db:migrate:preview` (SQL in `migrations/`)
 - Lint: `pnpm lint`
 - Typecheck: `pnpm typecheck` (`next typegen` first, so route types exist on a clean checkout)
@@ -50,7 +50,10 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
   `REFERRAL_JUMP` × referrals, earlier join wins ties. The Resend confirmation
   email is sent in `ctx.waitUntil` and never fails a signup; its copy is the
   `Email` namespace in `messages/*.json`. Vars live in `wrangler.jsonc`;
-  secrets are `TURNSTILE_SECRET_KEY` and `RESEND_API_KEY`. Store only what
+  the secret is `RESEND_API_KEY`. `TURNSTILE_SECRET_KEY` is a var holding
+  Cloudflare's always-pass test secret (demo choice; pairs with the test site
+  key in `.env.production`). Previews leave `SITE_URL` unset, so invite links use
+  the request's origin (`worker/config.ts`). Store only what
   the brief's Privacy section allows. Binding types are hand-written in
   `worker/env.ts` (the root tsconfig uses the DOM lib).
 - **Waitlist form.** Posts to `NEXT_PUBLIC_WAITLIST_ENDPOINT` (`/api/waitlist`)
@@ -84,10 +87,11 @@ pull request gets a Workers Preview `pr-<number>` (deleted when it closes), a
 push to `develop` updates the `develop` preview, and a push to `master` runs
 the production deploy steps. Previews use the `previews` block in
 `wrangler.jsonc`: one shared D1 database
-(`fakka-waitlist-preview`, migrated with `wrangler.preview-migrations.jsonc`),
-Turnstile test keys, and no Resend key. Previews do not inherit top-level
+(`fakka-waitlist-preview`, migrated with `wrangler.preview-migrations.jsonc`)
+and no Resend key. Previews do not inherit top-level
 bindings or vars, so a new binding or var goes in both places. Deploys need
-the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets.
+the `CLOUDFLARE_API_TOKEN` (Workers Scripts Edit + D1 Edit) and
+`CLOUDFLARE_ACCOUNT_ID` repository secrets.
 
 ### Conventions
 

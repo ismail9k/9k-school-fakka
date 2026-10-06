@@ -30,7 +30,8 @@ export interface ExecutionContext {
 export interface Env {
   DB: D1Database;
   WAITLIST_LIMITER: RateLimit;
-  SITE_URL: string;
+  // Unset on Workers Previews; readConfig then uses the request origin.
+  SITE_URL?: string;
   EMAIL_FROM: string;
   REFERRAL_JUMP: string;
   TURNSTILE_SECRET_KEY?: string;

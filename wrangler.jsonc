@@ -29,9 +29,13 @@
     "SITE_URL": "https://fakka.com",
     "EMAIL_FROM": "Fakka <hello@fakka.com>",
     // Places each referral moves the inviter up the queue.
-    "REFERRAL_JUMP": "5"
+    "REFERRAL_JUMP": "5",
+    // Cloudflare's public always-pass Turnstile test secret (demo project);
+    // pairs with the test site key in .env.production. For real protection,
+    // remove this and `wrangler secret put TURNSTILE_SECRET_KEY` instead.
+    "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA"
   },
-  // Secrets (wrangler secret put): TURNSTILE_SECRET_KEY, RESEND_API_KEY
+  // Secrets (wrangler secret put): RESEND_API_KEY. Without it no email is sent.
   "observability": { "enabled": true },
   // Settings for `wrangler preview` (the develop and PR previews). Previews do
   // not inherit the bindings and vars above, so each one is repeated here
@@ -52,8 +56,8 @@
         "simple": { "limit": 20, "period": 60 }
       }
     ],
+    // No SITE_URL: invite links use the preview's own URL (worker/config.ts).
     "vars": {
-      "SITE_URL": "https://fakka.com",
       "EMAIL_FROM": "Fakka <hello@fakka.com>",
       "REFERRAL_JUMP": "5",
       // Cloudflare's public always-pass Turnstile test secret. No
