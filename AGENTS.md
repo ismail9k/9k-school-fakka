@@ -90,8 +90,10 @@ the production deploy steps. Previews use the `previews` block in
 (`fakka-waitlist-preview`, migrated with `wrangler.preview-migrations.jsonc`)
 and no Resend key. Previews do not inherit top-level
 bindings or vars, so a new binding or var goes in both places. Deploys need
-the `CLOUDFLARE_API_TOKEN` (Workers Scripts Edit + D1 Edit) and
-`CLOUDFLARE_ACCOUNT_ID` repository secrets.
+the `CLOUDFLARE_API_TOKEN` (Workers access only, no D1) and
+`CLOUDFLARE_ACCOUNT_ID` repository secrets. CI does not run D1 migrations:
+a change that adds one to `migrations/` must be applied by hand with
+`pnpm db:migrate:preview` and `pnpm db:migrate:remote` before it deploys.
 
 ### Conventions
 

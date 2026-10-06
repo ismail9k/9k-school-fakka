@@ -11,7 +11,9 @@
 # Previews use the `previews` block in wrangler.jsonc: their own D1 database
 # and no emails. This demo uses Cloudflare's always-pass Turnstile test keys
 # everywhere (.env.production and wrangler.jsonc).
-# Deploys need two repository secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+# Deploys need two repository secrets: CLOUDFLARE_API_TOKEN (Workers access only)
+# and CLOUDFLARE_ACCOUNT_ID. CI never touches D1: run migrations by hand with
+# `pnpm db:migrate:preview` / `pnpm db:migrate:remote` before shipping one.
 # They are passed only to the steps that call Cloudflare, never to install steps.
 # Third-party actions are pinned to a commit SHA; Dependabot bumps them.
 
@@ -77,13 +79,6 @@ jobs:
           cache: true
 
       - run: pnpm build
-
-      # All previews share one D1 database, separate from production. Two runs
-      # can migrate it at once; the retry finds the loser's migration applied.
-      - run: pnpm db:migrate:preview || { sleep 20; pnpm db:migrate:preview; }
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - id: deploy
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
@@ -155,13 +150,10 @@ jobs:
           runtime: node@22
           cache: true
 
-      # Same steps as `pnpm run deploy`, one per line so each shows in the log.
+      # `pnpm run deploy` minus the D1 migrations: the CI token has no D1
+      # access, so migrations are run by hand (see README).
       - run: node scripts/check-release-env.mjs
       - run: pnpm build
-      - run: pnpm db:migrate:remote
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - id: deploy
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3

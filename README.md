@@ -77,14 +77,19 @@ GitHub Actions (`.github/workflows/ci-cd.yml`):
 | Pull request | the checks, then a Cloudflare Workers Preview named `pr-<number>`; its URL is commented on the PR |
 | Pull request closed | its preview is deleted |
 | Push to `develop` | the checks, then a Cloudflare Workers Preview named `develop` |
-| Push to `master` | the checks, then the production deploy (`pnpm run deploy` steps) |
+| Push to `master` | the checks, then the production deploy (`pnpm run deploy` steps, minus migrations) |
 
 Previews share one D1 database (`fakka-waitlist-preview`) and send no emails,
 so they never touch production sign-ups.
 Pull requests from forks get no secrets, so they run the checks only.
 
 One-time setup: create a Cloudflare API token from the "Edit Cloudflare
-Workers" template and add **Account → D1 → Edit** to it (the template has no
-D1 access, and every deploy runs D1 migrations). Add the token and your
-account ID (`pnpm exec wrangler whoami`) as repository secrets named
-`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+Workers" template. Add it and your account ID (`pnpm exec wrangler whoami`) as
+repository secrets named `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
+**D1 migrations are not run by CI**, because the token has no D1 access. When
+a change adds a file to `migrations/`, apply it yourself (logged in with
+`wrangler login`) before that change deploys:
+
+- preview database, before the PR or `develop` deploy: `pnpm db:migrate:preview`
+- production database, before merging into `master`: `pnpm db:migrate:remote`
