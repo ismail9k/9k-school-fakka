@@ -74,7 +74,7 @@ GitHub Actions (`.github/workflows/ci-cd.yml`):
 
 | Event | What runs |
 | --- | --- |
-| Pull request | the checks, then a Cloudflare Workers Preview named `pr-<number>`; its URL is commented on the PR |
+| Pull request | the checks, then a Cloudflare Workers Preview named `pr-<number>`, with a preview card (status, preview URL, logs) commented on the PR |
 | Pull request closed | its preview is deleted |
 | Push to `develop` | the checks, then a Cloudflare Workers Preview named `develop` |
 | Push to `master` | the checks, then the production deploy (`pnpm run deploy` steps, minus migrations) |
