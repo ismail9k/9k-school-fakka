@@ -71,8 +71,21 @@ jobs:
       pull-requests: write
     env:
       PREVIEW_NAME: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'develop' }}
+      # On a PR, github.sha is GitHub's temporary merge commit; show the PR's own head commit.
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      # Used by scripts/preview-comment.sh, which keeps one preview card per PR.
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      LOGS_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v7
+
+      - name: Mark the PR preview as deploying
+        if: github.event_name == 'pull_request'
+        run: scripts/preview-comment.sh deploying
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3.0.0
         with:
           runtime: node@22
@@ -86,7 +99,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           packageManager: pnpm
-          command: preview --name ${{ env.PREVIEW_NAME }} --message ${{ github.sha }}
+          command: preview --name ${{ env.PREVIEW_NAME }} --message ${{ env.COMMIT_SHA }}
 
       - name: Show preview URL
         run: |
@@ -94,17 +107,15 @@ jobs:
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.preview-url }}
 
-      # One comment per PR, updated on every push.
-      - name: Comment preview URL on the PR
-        if: github.event_name == 'pull_request'
-        run: |
-          gh pr comment "$PR_NUMBER" --edit-last --create-if-none \
-            --body "Preview for this PR: $PREVIEW_URL (commit $GITHUB_SHA)"
+      # Runs after a failure too (but not when a newer push cancelled this run),
+      # so the card never stays stuck on "Deploying".
+      - name: Update the PR preview card
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: scripts/preview-comment.sh ${{ steps.deploy.outcome == 'success' && 'success' || 'failure' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           PREVIEW_URL: ${{ steps.deploy.outputs.preview-url }}
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.preview-deployment-url }}
 
   preview-cleanup:
     name: Delete PR preview
