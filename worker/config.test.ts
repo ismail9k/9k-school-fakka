@@ -26,6 +26,16 @@ describe("readConfig", () => {
     expect(readConfig({ ...base, REFERRAL_JUMP: value }).referralJump).toBe(5);
   });
 
+  it("uses the request origin when SITE_URL is unset", () => {
+    expect(readConfig({ ...base, SITE_URL: undefined }, "https://pr-8-fakka.example.workers.dev").siteUrl).toBe(
+      "https://pr-8-fakka.example.workers.dev",
+    );
+  });
+
+  it("prefers SITE_URL over the request origin", () => {
+    expect(readConfig(base, "https://pr-8-fakka.example.workers.dev").siteUrl).toBe("https://fakka.com");
+  });
+
   it("falls back to defaults when vars are missing", () => {
     expect(readConfig({} as typeof base)).toEqual({
       siteUrl: "https://fakka.com",

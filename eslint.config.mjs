@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local-only: git worktrees and Wrangler's build cache.
+    ".worktrees/**",
+    ".wrangler/**",
   ]),
 ]);
 

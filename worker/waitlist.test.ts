@@ -21,8 +21,8 @@ const body = {
   turnstileToken: "tok",
 };
 
-function post(data: unknown = body, init: RequestInit = {}) {
-  return new Request("https://fakka.com/api/waitlist", {
+function post(data: unknown = body, init: RequestInit = {}, url = "https://fakka.com/api/waitlist") {
+  return new Request(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "CF-Connecting-IP": "1.2.3.4" },
     body: typeof data === "string" ? data : JSON.stringify(data),
@@ -70,6 +70,12 @@ afterEach(() => {
 });
 
 describe("handleWaitlist", () => {
+  it("builds invite links on the request's own origin when SITE_URL is unset (previews)", async () => {
+    env.SITE_URL = "";
+    const { body: res } = await call(post(body, {}, "https://pr-8-fakka.example.workers.dev/api/waitlist"));
+    expect(res.inviteUrl).toMatch(/^https:\/\/pr-8-fakka\.example\.workers\.dev\/en\/\?ref=[a-z2-9]{8}$/);
+  });
+
   it("joins, returns position and invite link, and emails in the signup language", async () => {
     const { status, body: res, response } = await call(post({ ...body, locale: "ar" }));
     expect(status).toBe(200);

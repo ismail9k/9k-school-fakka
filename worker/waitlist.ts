@@ -77,7 +77,7 @@ export async function handleWaitlist(request: Request, env: Env, ctx: ExecutionC
     return json({ error: "verification_failed" }, 403);
   }
 
-  const config = readConfig(env);
+  const config = readConfig(env, new URL(request.url).origin);
   try {
     const { signup, created } = await createSignup(env.DB, {
       name: input.name,
