@@ -1,12 +1,16 @@
 # CI/CD for Fakka.
 #
-#   CI  (every pull request, and every push to develop or master):
+#   CI  (every pull request, every push to develop or master, and every v* tag):
 #       lint -> typecheck -> test -> build
 #   CD  (only after CI passes):
 #       pull request    -> Cloudflare Workers Preview named "pr-<number>", URL commented on the PR
 #       push to develop -> Cloudflare Workers Preview named "develop"
-#       push to master  -> production deploy of the `fakka` Worker
+#       push to master  -> nothing is deployed; master waits for a release tag
+#       tag v<version>  -> production deploy of the `fakka` Worker
 #       PR closed       -> its preview is deleted
+#
+# Releases follow Git Flow: a release/<version> branch is merged into master,
+# and tagging that merge commit is the decision to ship (see README).
 #
 # Previews use the `previews` block in wrangler.jsonc: their own D1 database
 # and no emails. This demo uses Cloudflare's always-pass Turnstile test keys
@@ -24,6 +28,7 @@ on:
     types: [opened, synchronize, reopened, closed]
   push:
     branches: [develop, master]
+    tags: ["v*"]
 
 permissions:
   contents: read
@@ -149,17 +154,28 @@ jobs:
   production:
     name: Deploy production
     needs: ci
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    # Each tag is its own run, so production deploys queue here instead.
+    concurrency:
+      group: production
+      cancel-in-progress: false
     environment:
       name: production
       url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
+      # Full history, so the tag check below can see master.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3.0.0
         with:
           runtime: node@22
           cache: true
+
+      # Anyone who can push can create a tag, on any branch. Only a tag named
+      # after package.json's version, on a commit already in master, may ship.
+      - run: node scripts/check-release-tag.mjs "$GITHUB_REF_NAME"
 
       # `pnpm run deploy` minus the D1 migrations: the CI token has no D1
       # access, so migrations are run by hand (see README).

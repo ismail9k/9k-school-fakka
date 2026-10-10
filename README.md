@@ -49,7 +49,7 @@ limit, and emails each new signup through Resend.
 
 ### Production setup
 
-Production deploys from CI on every push to `master` (see CI/CD below).
+Production deploys from CI when a release tag is pushed (see CI/CD below).
 `pnpm run deploy` does the same from your machine.
 
 - The D1 databases already exist (`fakka-waitlist` for production,
@@ -77,7 +77,8 @@ GitHub Actions (`.github/workflows/ci-cd.yml`):
 | Pull request | the checks, then a Cloudflare Workers Preview named `pr-<number>`, with a preview card (status, preview URL, logs) commented on the PR |
 | Pull request closed | its preview is deleted |
 | Push to `develop` | the checks, then a Cloudflare Workers Preview named `develop` |
-| Push to `master` | the checks, then the production deploy (`pnpm run deploy` steps, minus migrations) |
+| Push to `master` | the checks only; nothing is deployed |
+| Tag `v<version>` pushed | the checks, the release tag check, then the production deploy (`pnpm run deploy` steps, minus migrations) |
 
 Previews share one D1 database (`fakka-waitlist-preview`) and send no emails,
 so they never touch production sign-ups.
@@ -92,4 +93,36 @@ a change adds a file to `migrations/`, apply it yourself (logged in with
 `wrangler login`) before that change deploys:
 
 - preview database, before the PR or `develop` deploy: `pnpm db:migrate:preview`
-- production database, before merging into `master`: `pnpm db:migrate:remote`
+- production database, before pushing the release tag: `pnpm db:migrate:remote`
+
+### Releasing to production
+
+Releases follow Git Flow. `develop` holds the next release, `master` holds what
+is live, and a tag on `master` is the decision to ship.
+
+1. Cut the release branch and set its version:
+
+   ```bash
+   git switch -c release/0.2.0 origin/develop
+   pnpm version 0.2.0 --no-git-tag-version
+   git commit -am "chore(release): 0.2.0"
+   git push -u origin release/0.2.0
+   ```
+
+2. Open a pull request from `release/0.2.0` into `master`. The checks run and
+   it gets its own preview for a last look. Only release fixes go on this branch.
+3. Merge it, then tag the merge commit. Pushing the tag deploys production:
+
+   ```bash
+   git switch master && git pull
+   git tag -a v0.2.0 -m "Release 0.2.0"
+   git push origin v0.2.0
+   ```
+
+4. Open a second pull request from `release/0.2.0` into `develop`, so the
+   version bump and any release fixes come back, then delete the branch.
+
+The production job refuses a tag that is not `v` plus the version in
+`package.json`, or that sits on a commit not yet in `master`
+(`scripts/check-release-tag.mjs`). A hotfix takes the same path from a
+`hotfix/<version>` branch cut from `master`.

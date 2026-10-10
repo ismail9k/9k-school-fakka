@@ -26,7 +26,7 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
   Copy `.dev.vars.example` to `.dev.vars` first.
 - Deploy: `pnpm run deploy` (release env check + build + remote D1 migrations + `wrangler deploy`).
   The check needs `NEXT_PUBLIC_WAITLIST_ENDPOINT` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
-  (environment or the committed `.env.production`). CI runs these steps on every push to `master`.
+  (environment or the committed `.env.production`). CI runs these steps when a `v<version>` tag is pushed.
 - D1 migrations alone: `pnpm db:migrate:local` / `pnpm db:migrate:remote` / `pnpm db:migrate:preview` (SQL in `migrations/`)
 - Lint: `pnpm lint`
 - Typecheck: `pnpm typecheck` (`next typegen` first, so route types exist on a clean checkout)
@@ -82,10 +82,14 @@ Package manager is pnpm (`pnpm-workspace.yaml` allowlists which deps may run bui
 ### CI/CD
 
 `.github/workflows/ci-cd.yml` runs lint, typecheck, test, and build on every
-pull request and on pushes to `develop` and `master`. After those pass, each
-pull request gets a Workers Preview `pr-<number>` (deleted when it closes), a
-push to `develop` updates the `develop` preview, and a push to `master` runs
-the production deploy steps. Previews use the `previews` block in
+pull request, on pushes to `develop` and `master`, and on `v*` tags. After
+those pass, each pull request gets a Workers Preview `pr-<number>` (deleted
+when it closes), a push to `develop` updates the `develop` preview, and a
+`v<version>` tag runs the production deploy steps. A push to `master` deploys
+nothing. Releases follow Git Flow (README, "Releasing to production"):
+`release/<version>` is merged into `master` and back into `develop`, and the
+tag goes on the `master` merge commit. `scripts/check-release-tag.mjs` blocks
+a tag that does not match `package.json`'s version or is not in `master`. Previews use the `previews` block in
 `wrangler.jsonc`: one shared D1 database
 (`fakka-waitlist-preview`, migrated with `wrangler.preview-migrations.jsonc`)
 and no Resend key. Previews do not inherit top-level
