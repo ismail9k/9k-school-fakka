@@ -262,6 +262,10 @@
       "data": {
         "q": "What do you do with my data?",
         "a": "We keep only what the waitlist needs: your name, email, language, when you joined, and who invited you. We never share or sell it, and we only email you about Fakka’s launch."
+      },
+      "emails": {
+        "q": "What emails will I get?",
+        "a": "One when you join, with your place in the queue and your invite link. After that, we only email you about Fakka’s launch."
       }
     }
   },

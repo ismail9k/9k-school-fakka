@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import { SectionHeading } from "./SectionHeading";
 
-const QUESTIONS = ["what", "who", "when", "queue", "data"] as const;
+const QUESTIONS = ["what", "who", "when", "queue", "data", "emails"] as const;
 
 export function Faq() {
   const t = useTranslations("Faq");
